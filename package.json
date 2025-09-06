@@ -1,0 +1,35 @@
+{
+    "name": "project_react_nodejs",
+    "version": "1.0.0",
+    "main": "server.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "nodemon --exec babel-node src/server.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/hoanle123564/project_react_nodejs.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/hoanle123564/project_react_nodejs/issues"
+    },
+    "homepage": "https://github.com/hoanle123564/project_react_nodejs#readme",
+    "description": "",
+    "dependencies": {
+        "body-parser": "^2.2.0",
+        "dotenv": "^17.2.2",
+        "ejs": "^3.1.10",
+        "express": "^5.1.0",
+        "nodemon": "^3.1.10",
+        "sequelize": "^6.37.7",
+        "sequelize-cli": "^6.6.3"
+    },
+    "devDependencies": {
+        "@babel/cli": "^7.28.3",
+        "@babel/core": "^7.28.4",
+        "@babel/node": "^7.28.0",
+        "@babel/preset-env": "^7.28.3"
+    }
+}
