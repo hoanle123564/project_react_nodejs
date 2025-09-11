@@ -2,5 +2,6 @@
 .env
 .sequelizerc
 package-lock.json
-package-lock.json
+package.json
 .babelrc
+data.sql

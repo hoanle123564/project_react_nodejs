@@ -1,4 +1,3 @@
-import db from '../models/index'
 import connection from '../config/data'
 let getHomePage = async(req, res) => {
     try {
