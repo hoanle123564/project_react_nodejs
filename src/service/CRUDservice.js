@@ -7,10 +7,10 @@ const createNewUser = async(data) => {
     data.password = await hashPassword(pass);
     data.gender = data.gender === '1' ? true : false
     const { email, password, fistname, lastname, address, gender, role, phonenumber } = data
-    // const id = 2
+    // const id = 3
     try {
         const [results, fields] = await connection.promise().query(`INSERT INTO users(email,	password,firstName,	lastName,address,gender	,roleId,phoneNumber) 
-            VALUES (?,?,?,?,?,?,?,?)`, [id, email, password, fistname, lastname, address, gender, role, phonenumber])
+            VALUES (?,?,?,?,?,?,?,?)`, [email, password, fistname, lastname, address, gender, role, phonenumber])
         console.log(data);
     } catch (error) {
         console.log(error);
@@ -38,6 +38,5 @@ const getAllUser = async() => {
 module.exports = {
     createNewUser,
     hashPassword,
-    checkPassword,
     getAllUser
 }
