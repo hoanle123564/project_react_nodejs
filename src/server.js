@@ -3,8 +3,14 @@ import bodyParser from 'body-parser'
 import ViewEngine from '../src/config/viewEngine'
 import initWebRoute from '../src/route/web'
 //import { connectDB } from './config/connectDB'
+import cors from 'cors'
 require('dotenv').config()
+
+
 let app = express()
+
+app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
