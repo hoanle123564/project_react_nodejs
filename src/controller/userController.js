@@ -1,6 +1,6 @@
-const { handleUserLogin, getAllUsers, createNewUser } = require('../service/userService')
+const { handleUserLogin, getAllUsers, createNewUser, deleteUser, updateUserData } = require('../service/userService')
 
-let handleLogin = async (req, res) => {
+let handleLogin = async(req, res) => {
     const email = req.body.email;
     const password = req.body.password
 
@@ -18,7 +18,7 @@ let handleLogin = async (req, res) => {
     })
 }
 
-let handleGetAllUser = async (req, res) => {
+let handleGetAllUser = async(req, res) => {
     const id = req.query ? req.query.id : null;
     if (!id) {
         return res.status(200).json({
@@ -34,9 +34,33 @@ let handleGetAllUser = async (req, res) => {
         users
     })
 }
-const handleCreateNewUserAPI = async (req, res) => {
-    const message = await createNewUser(req.query);
-    console.log(message);
+const handleCreateNewUserAPI = async(req, res) => {
+
+    const message = await createNewUser(req.body);
     return res.status(200).json(message)
 }
-module.exports = { handleLogin, handleGetAllUser, handleCreateNewUserAPI }
+
+const handleEditUserAPI = async(req, res) => {
+    const data = req.body;
+    const message = await updateUserData(data);
+    return res.status(200).json(message)
+}
+
+const handleDeleteNewUserAPI = async(req, res) => {
+    const id = req.body.id;
+    if (!id) {
+        return res.status(200).json({
+            errCode: 1,
+            errMessage: 'Missing required parameters'
+        })
+    }
+    const message = await deleteUser(id);
+    return res.status(200).json(message)
+}
+module.exports = {
+    handleLogin,
+    handleGetAllUser,
+    handleCreateNewUserAPI,
+    handleEditUserAPI,
+    handleDeleteNewUserAPI
+}

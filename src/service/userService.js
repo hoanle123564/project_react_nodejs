@@ -30,7 +30,6 @@ const handleUserLogin = async(email, pass) => {
     } catch (error) {
         console.log(error);
     }
-
 }
 const checkEmail = async(email) => {
     try {
@@ -62,7 +61,6 @@ const getAllUsers = async(userId) => {
             console.log('rows >>', rows);
 
             return users
-
         }
 
     } catch (error) {
@@ -72,19 +70,20 @@ const getAllUsers = async(userId) => {
 const createNewUser = async(data) => {
     const status = {}
     const check = await checkEmail(data.email)
-    if (check) {
-        status.errCode = 1
-        status.errMessage = `Email is exist. Try another`;
-        return status
-    }
-    const pass = data.password
-    data.password = await hashPassword(pass);
-    data.gender = data.gender === '1' ? true : false
-    const { email, password, fistname, lastname, address, gender, role, phonenumber } = data
-    // const id = 3
     try {
+        if (check) {
+            status.errCode = 1
+            status.errMessage = `Email is exist. Try another`;
+            return status
+        }
+        const pass = data.password
+        data.password = await hashPassword(pass);
+        data.gender = data.gender === '1' ? true : false
+        const { email, password, firstName, lastName, address, gender, role, phonenumber } = data
+        // const id = 3
+
         const [results, fields] = await connection.promise().query(`INSERT INTO users(email,password,firstName,	lastName,address,gender	,roleId,phoneNumber) 
-            VALUES (?,?,?,?,?,?,?,?)`, [email, password, fistname, lastname, address, gender, role, phonenumber])
+            VALUES (?,?,?,?,?,?,?,?)`, [email, password, firstName, lastName, address, gender, role, phonenumber])
         status.errCode = 0;
         status.errMessage = `0K`;
         return status
@@ -93,4 +92,35 @@ const createNewUser = async(data) => {
         return error
     }
 }
-module.exports = { handleUserLogin, getAllUsers, createNewUser }
+
+const deleteUser = async(id) => {
+    const status = {}
+    const [rows] = await connection.promise().query(`SELECT * FROM users where id = ? `, [id])
+    if (rows.length > 0) {
+        await connection.promise().query(`DELETE FROM users where id = ? `, [id])
+        status.errCode = 0;
+        status.errMessage = 'Delete user succeed'
+    } else {
+        status.errCode = 1;
+        status.errMessage = `User is't exist`
+    }
+    return status
+}
+const updateUserData = async(data) => {
+    const status = {};
+    const id = data ? data.id : null
+    const [rows] = await connection.promise().query(`SELECT * FROM users where id = ? `, [id])
+
+    if (rows.length > 0) {
+        const { firstName, lastName, email, address } = data
+        const [results, fields] = await connection.promise().query('UPDATE Users SET firstName = ?, lastName = ?, email = ?,address = ? where id = ?', [firstName, lastName, email, address, id])
+        status.errCode = 0;
+        status.errMessage = 'Update user succeed!';
+    } else {
+        status.errCode = 1;
+        status.errMessage = `User not found!`;
+    }
+    return status
+}
+
+module.exports = { handleUserLogin, getAllUsers, createNewUser, deleteUser, updateUserData }
