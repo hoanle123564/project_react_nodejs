@@ -1,6 +1,6 @@
-const { handleUserLogin, getAllUsers, createNewUser, deleteUser, updateUserData } = require('../service/userService')
+const { handleUserLogin, getAllUsers, createNewUser, deleteUser, updateUserData, getAllCodeService } = require('../service/userService')
 
-let handleLogin = async(req, res) => {
+let handleLogin = async (req, res) => {
     const email = req.body.email;
     const password = req.body.password
 
@@ -18,7 +18,7 @@ let handleLogin = async(req, res) => {
     })
 }
 
-let handleGetAllUser = async(req, res) => {
+let handleGetAllUser = async (req, res) => {
     const id = req.query ? req.query.id : null;
     if (!id) {
         return res.status(200).json({
@@ -34,19 +34,19 @@ let handleGetAllUser = async(req, res) => {
         users
     })
 }
-const handleCreateNewUserAPI = async(req, res) => {
+const handleCreateNewUserAPI = async (req, res) => {
 
     const message = await createNewUser(req.body);
     return res.status(200).json(message)
 }
 
-const handleEditUserAPI = async(req, res) => {
+const handleEditUserAPI = async (req, res) => {
     const data = req.body;
     const message = await updateUserData(data);
     return res.status(200).json(message)
 }
 
-const handleDeleteNewUserAPI = async(req, res) => {
+const handleDeleteNewUserAPI = async (req, res) => {
     const id = req.body.id;
     if (!id) {
         return res.status(200).json({
@@ -57,10 +57,24 @@ const handleDeleteNewUserAPI = async(req, res) => {
     const message = await deleteUser(id);
     return res.status(200).json(message)
 }
+
+const getAllCode = async (req, res) => {
+    try {
+        let data = await getAllCodeService();
+        return res.status(200).json(data)
+    } catch (error) {
+        console.log('Error get all code', error);
+        return res.status(200).json({
+            errCode: -1,
+            errMessage: 'Error from Server'
+        })
+    }
+}
 module.exports = {
     handleLogin,
     handleGetAllUser,
     handleCreateNewUserAPI,
     handleEditUserAPI,
-    handleDeleteNewUserAPI
+    handleDeleteNewUserAPI,
+    getAllCode
 }

@@ -1,8 +1,8 @@
-import express from 'express'
-import bodyParser from 'body-parser'
-import ViewEngine from '../src/config/viewEngine'
-import initWebRoute from '../src/route/web'
-import cors from 'cors'
+const express = require('express')
+const bodyParser = require('body-parser')
+const ViewEngine = require('../src/config/viewEngine')
+const initWebRoute = require('../src/route/web')
+const cors = require('cors')
 require('dotenv').config()
 
 let app = express()

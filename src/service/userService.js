@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const { hashPassword } = require('../service/CRUDservice')
 
 
-const handleUserLogin = async(email, pass) => {
+const handleUserLogin = async (email, pass) => {
     try {
         const isExistMail = await checkEmail(email);
 
@@ -31,7 +31,7 @@ const handleUserLogin = async(email, pass) => {
         console.log(error);
     }
 }
-const checkEmail = async(email) => {
+const checkEmail = async (email) => {
     try {
         const [results, fields] = await connection.promise().query(`SELECT * FROM users Where email = ?`, [email])
 
@@ -45,7 +45,7 @@ const checkEmail = async(email) => {
     }
 }
 
-const getAllUsers = async(userId) => {
+const getAllUsers = async (userId) => {
     try {
         if (userId === 'ALL') {
             const [rows] = await connection.promise().query(`SELECT * FROM users `)
@@ -67,7 +67,7 @@ const getAllUsers = async(userId) => {
         console.log(error);
     }
 }
-const createNewUser = async(data) => {
+const createNewUser = async (data) => {
     const status = {}
     const check = await checkEmail(data.email)
     try {
@@ -93,7 +93,7 @@ const createNewUser = async(data) => {
     }
 }
 
-const deleteUser = async(id) => {
+const deleteUser = async (id) => {
     const status = {}
     const [rows] = await connection.promise().query(`SELECT * FROM users where id = ? `, [id])
     if (rows.length > 0) {
@@ -106,7 +106,7 @@ const deleteUser = async(id) => {
     }
     return status
 }
-const updateUserData = async(data) => {
+const updateUserData = async (data) => {
     const status = {};
     const id = data ? data.id : null
     const [rows] = await connection.promise().query(`SELECT * FROM users where id = ? `, [id])
@@ -122,5 +122,19 @@ const updateUserData = async(data) => {
     }
     return status
 }
+const getAllCodeService = async () => {
+    let message={};
+    try {
+        const [rows] = await connection.promise().query('select * from Allcodes');
+        message.errCode = 0;
+        message.errMessage = 'Done';
+        message.data = rows;
+        return message
 
-module.exports = { handleUserLogin, getAllUsers, createNewUser, deleteUser, updateUserData }
+    } catch (error) {
+        message.errCode = 1;
+        message.errMessage = 'Error';
+        return error
+    }
+}
+module.exports = { handleUserLogin, getAllUsers, createNewUser, deleteUser, updateUserData, getAllCodeService }

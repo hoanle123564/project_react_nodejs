@@ -1,11 +1,12 @@
-import express from 'express'
-import { getHomePage, getCRUD, postCRUD, displayGetCRUD } from '../controller/homeController'
+const express = require('express')
+const { getHomePage, getCRUD, postCRUD, displayGetCRUD } = require('../controller/homeController')
 const {
     handleLogin,
     handleGetAllUser,
     handleCreateNewUserAPI,
     handleEditUserAPI,
-    handleDeleteNewUserAPI
+    handleDeleteNewUserAPI,
+    getAllCode
 } = require('../controller/userController')
 const router = express.Router()
 
@@ -18,4 +19,5 @@ router.get('/api/get-all-user', handleGetAllUser)
 router.post('/api/create-new-user', handleCreateNewUserAPI)
 router.put('/api/edit-user', handleEditUserAPI)
 router.delete('/api/delete-user', handleDeleteNewUserAPI)
+router.get('/allcodes', getAllCode)
 module.exports = router
