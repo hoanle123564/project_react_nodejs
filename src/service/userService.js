@@ -122,10 +122,10 @@ const updateUserData = async (data) => {
     }
     return status
 }
-const getAllCodeService = async () => {
-    let message={};
+const getAllCodeService = async (type) => {
+    let message = {};
     try {
-        const [rows] = await connection.promise().query('select * from Allcodes');
+        const [rows] = await connection.promise().query('select * from Allcodes where type = ?', [type]);
         message.errCode = 0;
         message.errMessage = 'Done';
         message.data = rows;

@@ -10,11 +10,11 @@ let handleLogin = async (req, res) => {
             message: 'Missing input parameter'
         })
     }
-    const useData = await handleUserLogin(email, password)
+    const user = await handleUserLogin(email, password)
     return res.status(200).json({
-        errCode: useData.errCode,
-        message: useData.errMessage,
-        useData
+        errCode: user.errCode,
+        message: user.errMessage,
+        user
     })
 }
 
@@ -60,7 +60,9 @@ const handleDeleteNewUserAPI = async (req, res) => {
 
 const getAllCode = async (req, res) => {
     try {
-        let data = await getAllCodeService();
+        console.log('check req', req.query.type);
+
+        let data = await getAllCodeService(req.query.type);
         return res.status(200).json(data)
     } catch (error) {
         console.log('Error get all code', error);

@@ -19,5 +19,5 @@ router.get('/api/get-all-user', handleGetAllUser)
 router.post('/api/create-new-user', handleCreateNewUserAPI)
 router.put('/api/edit-user', handleEditUserAPI)
 router.delete('/api/delete-user', handleDeleteNewUserAPI)
-router.get('/allcodes', getAllCode)
+router.get('/api/allcodes', getAllCode)
 module.exports = router
