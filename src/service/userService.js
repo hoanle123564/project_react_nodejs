@@ -79,11 +79,13 @@ const createNewUser = async (data) => {
         const pass = data.password
         data.password = await hashPassword(pass);
         data.gender = data.gender === '1' ? true : false
-        const { email, password, firstName, lastName, address, gender, role, phonenumber } = data
+        const { email, password, firstName, lastName, address, gender, role, phoneNumber, position } = data
+        console.log('check data');
+        
         // const id = 3
 
-        const [results, fields] = await connection.promise().query(`INSERT INTO users(email,password,firstName,	lastName,address,gender	,roleId,phoneNumber) 
-            VALUES (?,?,?,?,?,?,?,?)`, [email, password, firstName, lastName, address, gender, role, phonenumber])
+        const [results, fields] = await connection.promise().query(`INSERT INTO users(email,password,firstName,	lastName,address,gender,positionId	,roleId,phoneNumber) 
+            VALUES (?,?,?,?,?,?,?,?,?)`, [email, password, firstName, lastName, address, gender,position, role, phoneNumber])
         status.errCode = 0;
         status.errMessage = `0K`;
         return status
