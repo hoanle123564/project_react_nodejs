@@ -8,6 +8,8 @@ const {
     handleDeleteNewUserAPI,
     getAllCode
 } = require('../controller/userController')
+
+const { getTopDoctor } = require('../controller/doctorController')
 const router = express.Router()
 
 router.get('/crud', getCRUD)
@@ -20,4 +22,5 @@ router.post('/api/create-new-user', handleCreateNewUserAPI)
 router.put('/api/edit-user', handleEditUserAPI)
 router.delete('/api/delete-user', handleDeleteNewUserAPI)
 router.get('/api/allcodes', getAllCode)
+router.get('/api/top-doctor', getTopDoctor)
 module.exports = router

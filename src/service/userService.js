@@ -117,7 +117,10 @@ const updateUserData = async (data) => {
     const [rows] = await connection.promise().query(`SELECT * FROM users where id = ? `, [id])
 
     if (rows.length > 0) {
+        const oldImage = rows[0].image;
         const { email, password, firstName, lastName, address, gender, roleId, phoneNumber, positionId, avatar } = data;
+        //  Nếu không có avatar mới, giữ nguyên ảnh cũ
+        const imageToSave = avatar && avatar.trim() !== "" ? avatar : oldImage;
         await connection.promise().query(
             `UPDATE users 
        SET firstName = ?, lastName = ?, email = ?, address = ?, gender = ?, roleId = ?, 
@@ -132,7 +135,7 @@ const updateUserData = async (data) => {
                 roleId,
                 phoneNumber,
                 positionId,
-                avatar,
+                imageToSave,
                 id,
             ]
         );
