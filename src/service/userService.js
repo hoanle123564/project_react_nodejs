@@ -50,7 +50,6 @@ const getAllUsers = async (userId) => {
         if (userId === 'ALL') {
             const [rows] = await connection.promise().query(`SELECT * FROM users `)
             const users = rows.map(({ password, ...rest }) => rest);
-
             console.log('rows >>', rows);
             return users
 
@@ -59,7 +58,6 @@ const getAllUsers = async (userId) => {
             const [rows] = await connection.promise().query(`SELECT * FROM users where id = ?`, [userId])
             const users = rows.map(({ password, ...rest }) => rest);
             console.log('rows >>', rows);
-
             return users
         }
 
@@ -69,6 +67,8 @@ const getAllUsers = async (userId) => {
 }
 const createNewUser = async (data) => {
     const status = {}
+    console.log("Received data:", data);
+
     const check = await checkEmail(data.email)
     try {
         if (check) {
@@ -78,14 +78,16 @@ const createNewUser = async (data) => {
         }
         const pass = data.password
         data.password = await hashPassword(pass);
-        data.gender = data.gender === '1' ? true : false
-        const { email, password, firstName, lastName, address, gender, role, phoneNumber, position } = data
+        const { email, password, firstName, lastName, address, gender, roleId, phoneNumber, positionId, avatar } = data;
         console.log('check data');
-        
+
         // const id = 3
 
-        const [results, fields] = await connection.promise().query(`INSERT INTO users(email,password,firstName,	lastName,address,gender,positionId	,roleId,phoneNumber) 
-            VALUES (?,?,?,?,?,?,?,?,?)`, [email, password, firstName, lastName, address, gender,position, role, phoneNumber])
+        const [results, fields] = await connection.promise().query(
+            `INSERT INTO users(email,password,firstName,lastName,address,gender,positionId,roleId,phoneNumber,image)
+   VALUES (?,?,?,?,?,?,?,?,?,?)`,
+            [email, password, firstName, lastName, address, gender, positionId, roleId, phoneNumber, avatar]
+        );
         status.errCode = 0;
         status.errMessage = `0K`;
         return status
@@ -108,14 +110,32 @@ const deleteUser = async (id) => {
     }
     return status
 }
+
 const updateUserData = async (data) => {
     const status = {};
     const id = data ? data.id : null
     const [rows] = await connection.promise().query(`SELECT * FROM users where id = ? `, [id])
 
     if (rows.length > 0) {
-        const { firstName, lastName, email, address } = data
-        const [results, fields] = await connection.promise().query('UPDATE Users SET firstName = ?, lastName = ?, email = ?,address = ? where id = ?', [firstName, lastName, email, address, id])
+        const { email, password, firstName, lastName, address, gender, roleId, phoneNumber, positionId, avatar } = data;
+        await connection.promise().query(
+            `UPDATE users 
+       SET firstName = ?, lastName = ?, email = ?, address = ?, gender = ?, roleId = ?, 
+           phoneNumber = ?, positionId = ?, image = ? 
+       WHERE id = ?`,
+            [
+                firstName,
+                lastName,
+                email,
+                address,
+                gender,
+                roleId,
+                phoneNumber,
+                positionId,
+                avatar,
+                id,
+            ]
+        );
         status.errCode = 0;
         status.errMessage = 'Update user succeed!';
     } else {
@@ -124,6 +144,7 @@ const updateUserData = async (data) => {
     }
     return status
 }
+
 const getAllCodeService = async (type) => {
     let message = {};
     try {
