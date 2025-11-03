@@ -31,6 +31,103 @@ const getTopDoctorHome = async (limit) => {
     }
 };
 
+
+const getDetailDoctorById = async (id) => {
+    const status = {};
+
+    try {
+        if (!id) {
+            status.errCode = 1;
+            status.errMessage = 'Missing required parameter: doctorId';
+            status.data = [];
+            return status;
+        }
+
+        const [rows] = await connection.promise().query(
+            `
+      SELECT 
+        u.id, u.email, u.firstName, u.lastName, u.address, u.phoneNumber, u.image,
+        u.gender, u.positionId, u.roleId,
+        p.value_vi AS positionVi, p.value_en AS positionEn,
+        g.value_vi AS genderVi, g.value_en AS genderEn,
+        m.contentHTML, m.contentMarkdown, m.description,
+        m.createdAt AS markdownCreatedAt, m.updatedAt AS markdownUpdatedAt
+      FROM Users AS u
+      LEFT JOIN Allcodes AS p 
+        ON u.positionId = p.keyMap AND p.type = 'POSITION'
+      LEFT JOIN Allcodes AS g 
+        ON u.gender = g.keyMap AND g.type = 'GENDER'
+      LEFT JOIN Markdown AS m 
+        ON m.doctorId = u.id
+      WHERE u.id = ? AND u.roleId = 'R2';
+      `,
+            [id]
+        );
+
+        if (rows.length > 0) {
+            status.errCode = 0;
+            status.errMessage = 'OK';
+            status.data = rows[0];
+        } else {
+            status.errCode = 2;
+            status.errMessage = 'Doctor not found';
+            status.data = {};
+        }
+
+        return status;
+    } catch (error) {
+        console.log('getDetailDoctorById error:', error);
+        status.errCode = 1;
+        status.errMessage = error.message || 'Database error';
+        status.data = [];
+        return status;
+    }
+};
+const getAllDoctorHome = async () => {
+    const status = {}
+
+    let [rows] = await connection.promise().query(
+        `SELECT * FROM users WHERE roleId = 'R2'`
+    );
+    status.errCode = 0;
+    status.errMessage = `0K`;
+    status.data = rows;
+    return status;
+}
+
+const saveDetailInfoDoctor = async (data) => {
+    const status = {}
+    try {
+        if (!data || !data.contentHTML || !data.contentMarkdown) {
+            status.errCode = 1;
+            status.errMessage = 'Missing required parameters';
+        } else {
+            const { contentHTML, contentMarkdown, description, doctorId } = data;
+
+            const [results] = await connection.promise().query(
+                `INSERT INTO Markdown 
+                (contentHTML, contentMarkdown, description, doctorId)
+                VALUES (?, ?, ?, ?)`,
+                [contentHTML, contentMarkdown, description || null, doctorId]
+            );
+            status.errCode = 0;
+            status.errMessage = 'Insert markdown successfully';
+            status.data = results;
+        }
+        return status;
+
+    } catch (error) {
+        console.log('saveDetailInfoDoctor error:', error);
+        status.errCode = 1;
+        status.errMessage = error;
+        status.data = [];
+        return status;
+    }
+}
+
 module.exports = {
     getTopDoctorHome,
+    getDetailDoctorById,
+    getAllDoctorHome,
+    saveDetailInfoDoctor
 };
