@@ -96,30 +96,57 @@ const getAllDoctorHome = async () => {
 }
 
 const saveDetailInfoDoctor = async (data) => {
-    const status = {}
+    const status = {};
     try {
-        if (!data || !data.contentHTML || !data.contentMarkdown) {
+        if (!data || !data.contentHTML || !data.contentMarkdown || !data.doctorId) {
             status.errCode = 1;
             status.errMessage = 'Missing required parameters';
-        } else {
-            const { contentHTML, contentMarkdown, description, doctorId } = data;
+            return status;
+        }
 
-            const [results] = await connection.promise().query(
-                `INSERT INTO Markdown 
-                (contentHTML, contentMarkdown, description, doctorId)
-                VALUES (?, ?, ?, ?)`,
+        const { contentHTML, contentMarkdown, description, doctorId } = data;
+        console.log("data", data);
+
+        // Kiểm tra xem doctorId đã có markdown chưa
+        const [check] = await connection.promise().query(
+            `SELECT id FROM Markdown WHERE doctorId = ?`,
+            [doctorId]
+        );
+
+        if (check.length > 0) {
+            // Nếu đã có → cập nhật
+            const [result] = await connection.promise().query(
+                `
+                UPDATE Markdown 
+                SET contentHTML = ?, contentMarkdown = ?, description = ?
+                WHERE doctorId = ?
+                `,
                 [contentHTML, contentMarkdown, description || null, doctorId]
             );
+
+            status.errCode = 0;
+            status.errMessage = 'Update markdown successfully';
+            status.data = result;
+        } else {
+            // Nếu chưa có → thêm mới
+            const [result] = await connection.promise().query(
+                `
+                INSERT INTO Markdown (contentHTML, contentMarkdown, description, doctorId)
+                VALUES (?, ?, ?, ?)
+                `,
+                [contentHTML, contentMarkdown, description || null, doctorId]
+            );
+
             status.errCode = 0;
             status.errMessage = 'Insert markdown successfully';
-            status.data = results;
+            status.data = result;
         }
-        return status;
 
+        return status;
     } catch (error) {
-        console.log('saveDetailInfoDoctor error:', error);
+        console.log('UpdateDetailInfoDoctor error:', error);
         status.errCode = 1;
-        status.errMessage = error;
+        status.errMessage = error.message || 'Database error';
         status.data = [];
         return status;
     }
