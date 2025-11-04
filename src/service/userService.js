@@ -151,7 +151,8 @@ const updateUserData = async (data) => {
 const getAllCodeService = async (type) => {
     let message = {};
     try {
-        const [rows] = await connection.promise().query('select * from Allcodes where type = ?', [type]);
+        const [rows] = await connection.promise().query(
+            'select * from Allcodes where type = ? ORDER BY CAST(SUBSTRING(keyMap, 2) AS UNSIGNED)', [type]);
         message.errCode = 0;
         message.errMessage = 'Done';
         message.data = rows;

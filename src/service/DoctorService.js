@@ -3,6 +3,7 @@ const connection = require("../config/data");
 const getTopDoctorHome = async (limit) => {
     const status = {};
     try {
+        // Lấy ra thông tin bác sĩ từ 2 bảng: Users, Allcodes (position)
         const limitNum = Number(limit) || 5;
         const [rows] = await connection.promise().query(
             `SELECT 
