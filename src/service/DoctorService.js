@@ -1,5 +1,5 @@
 const connection = require("../config/data");
-
+const moment = require("moment");
 const getTopDoctorHome = async (limit) => {
     const status = {};
     try {
@@ -153,9 +153,107 @@ const saveDetailInfoDoctor = async (data) => {
     }
 }
 
+
+
+// Định nghĩa 1 hàm chuẩn hóa ngày 
+const normalizeDate = (dateValue) => {
+    if (!dateValue) return null;
+
+    // Nếu là chuỗi DD/MM/YYYY
+    if (typeof dateValue === "string" && dateValue.includes("/")) {
+        return moment(dateValue, "DD/MM/YYYY", true).format("YYYY-MM-DD");
+    }
+
+    // Nếu là đối tượng Date hoặc ISO string
+    return moment(dateValue).format("YYYY-MM-DD");
+};
+
+const PostScheduleDoctor = async (data) => {
+    const status = {};
+    try {
+        if (!data || !data.doctorId || !data.date || !data.timeType) {
+            status.errCode = 1;
+            status.errMessage = "Missing required parameters";
+            return status;
+        }
+
+        const maxNumber = 10;
+        const { doctorId, date, timeType } = data;
+
+        // ✅ Chuẩn hóa định dạng ngày (trước khi dùng)
+
+
+        // Chuẩn bị mảng insert
+        let values = timeType.map((slot) => [
+            maxNumber,
+            doctorId,
+            date,
+            slot,
+        ]);
+        console.log("Bulk insert values:", values);
+
+        const [rows] = await connection
+            .promise()
+            .query(`SELECT doctorId, date, timeType FROM schedule`);
+
+        // ✅ Lọc trùng
+        values = values.filter((v) => {
+            return !rows.some((row) => {
+                console.log('row.date', row.date);
+
+                const rowDate = moment(row.date).format("YYYY-MM-DD");
+                v[2] = moment(v[2], ["DD/MM/YYYY", moment.ISO_8601]).format("YYYY-MM-DD");
+                return (
+                    Number(row.doctorId) === Number(v[1]) &&
+                    rowDate === v[2] &&
+                    row.timeType === v[3]
+                );
+            });
+        });
+
+        console.log("Values after filter:", values);
+
+        // ✅ Chuyển tất cả date về YYYY-DD-MM một lần nữa để chắc chắn
+        values = values.map((v) => {
+            v[2] = moment(v[2], ["DD/MM/YYYY", moment.ISO_8601]).format("YYYY-MM-DD");
+            return v;
+        });
+
+        // Nếu không có giá trị mới thì dừng
+        if (values.length === 0) {
+            status.errCode = 0;
+            status.errMessage = "No new schedule to insert";
+            status.data = [];
+            return status;
+        }
+
+        // ✅ Insert dữ liệu chuẩn
+        const [result] = await connection.promise().query(
+            `
+      INSERT INTO schedule (maxNumber, doctorId, date, timeType)
+      VALUES ?`
+            ,
+            [values]
+        );
+
+        status.errCode = 0;
+        status.errMessage = "Schedule created successfully";
+        status.data = result;
+        return status;
+    } catch (error) {
+        console.log("PostScheduleDoctor error:", error);
+        status.errCode = 1;
+        status.errMessage = error.message || "Database error";
+        status.data = [];
+        return status;
+    }
+};
+
+
 module.exports = {
     getTopDoctorHome,
     getDetailDoctorById,
     getAllDoctorHome,
-    saveDetailInfoDoctor
+    saveDetailInfoDoctor,
+    PostScheduleDoctor
 };

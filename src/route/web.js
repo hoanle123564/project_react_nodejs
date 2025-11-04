@@ -9,7 +9,7 @@ const {
     getAllCode
 } = require('../controller/userController')
 
-const { getTopDoctor, getDetailDoctor, getAllDoctor, postInfoDoctor } = require('../controller/doctorController')
+const { getTopDoctor, getDetailDoctor, getAllDoctor, postInfoDoctor, CreateScheduleDoctor } = require('../controller/doctorController')
 const router = express.Router()
 
 router.get('/crud', getCRUD)
@@ -26,5 +26,6 @@ router.get('/api/top-doctor', getTopDoctor)
 router.get('/api/all-doctor', getAllDoctor)
 router.get('/api/detail-doctor', getDetailDoctor)
 router.post('/api/save-doctor', postInfoDoctor)
+router.post('/api/create-schedule-doctor', CreateScheduleDoctor)
 
 module.exports = router
