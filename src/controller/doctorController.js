@@ -4,6 +4,7 @@ const {
     getAllDoctorHome,
     saveDetailInfoDoctor,
     PostScheduleDoctor,
+    GetcheScheduleDoctorByDate
 } = require("../service/DoctorService");
 const getTopDoctor = async (req, res) => {
     let limit = req.query.limit;
@@ -71,10 +72,30 @@ const CreateScheduleDoctor = async (req, res) => {
         });
     }
 };
+
+const GetcheScheduleDoctor = async (req, res) => {
+    try {
+        let doctorId = req.query.doctorId;
+        let date = req.query.date;
+        let response = await GetcheScheduleDoctorByDate(doctorId, date);
+        console.log('response', response);
+
+        return res.status(200).json(response);
+
+    } catch (error) {
+        console.log("GetcheScheduleDoctor error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server",
+        });
+    }
+}
+
 module.exports = {
     getTopDoctor,
     getDetailDoctor,
     getAllDoctor,
     postInfoDoctor,
     CreateScheduleDoctor,
+    GetcheScheduleDoctor
 };

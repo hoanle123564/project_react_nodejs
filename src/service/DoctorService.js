@@ -84,6 +84,7 @@ const getDetailDoctorById = async (id) => {
         return status;
     }
 };
+
 const getAllDoctorHome = async () => {
     const status = {}
 
@@ -180,7 +181,7 @@ const PostScheduleDoctor = async (data) => {
         const maxNumber = 10;
         const { doctorId, date, timeType } = data;
 
-        // ✅ Chuẩn hóa định dạng ngày (trước khi dùng)
+        // Chuẩn hóa định dạng ngày (trước khi dùng)
 
 
         // Chuẩn bị mảng insert
@@ -227,7 +228,7 @@ const PostScheduleDoctor = async (data) => {
             return status;
         }
 
-        // ✅ Insert dữ liệu chuẩn
+        //  Insert dữ liệu chuẩn
         const [result] = await connection.promise().query(
             `
       INSERT INTO schedule (maxNumber, doctorId, date, timeType)
@@ -249,11 +250,50 @@ const PostScheduleDoctor = async (data) => {
     }
 };
 
+const GetcheScheduleDoctorByDate = async (doctorId, date) => {
+    const status = {};
+    console.log('doctorId, date', doctorId, date);
 
+    try {
+        if (!doctorId || !date) {
+            status.errCode = 1;
+            status.errMessage = "Missing required parameters";
+            status.data = [];
+            return status;
+        }
+        const normalizedDate = normalizeDate(date);
+        const [rows] = await connection.promise().query(
+            `
+        SELECT s.id, s.doctorId, s.date, s.timeType, s.maxNumber,
+        a.value_vi , a.value_en 
+        FROM schedule AS s
+        LEFT JOIN allcodes AS a ON s.timeType = a.keyMap AND a.type = 'TIME'
+        WHERE s.doctorId = ? AND s.date = ?
+        ORDER BY s.timeType ASC
+      `,
+            [doctorId, normalizedDate]
+        );
+        console.log('schedules', rows);
+
+        status.errCode = 0;
+        status.errMessage = "OK";
+        status.data = rows;
+        return status;
+    }
+    catch (error) {
+        console.log("GetcheScheduleDoctorByDate error:", error);
+        status.errCode = 1;
+        status.errMessage = error.message || "Database error";
+        status.data = [];
+        return status;
+    }
+
+}
 module.exports = {
     getTopDoctorHome,
     getDetailDoctorById,
     getAllDoctorHome,
     saveDetailInfoDoctor,
-    PostScheduleDoctor
+    PostScheduleDoctor,
+    GetcheScheduleDoctorByDate
 };
