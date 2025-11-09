@@ -46,13 +46,19 @@ const getDetailDoctorById = async (id) => {
 
         const [rows] = await connection.promise().query(
             `
-      SELECT 
+   SELECT 
         u.id, u.email, u.firstName, u.lastName, u.address, u.phoneNumber, u.image,
         u.gender, u.positionId, u.roleId,
         p.value_vi AS positionVi, p.value_en AS positionEn,
         g.value_vi AS genderVi, g.value_en AS genderEn,
         m.contentHTML, m.contentMarkdown, m.description,
-        m.createdAt AS markdownCreatedAt, m.updatedAt AS markdownUpdatedAt
+        m.createdAt AS markdownCreatedAt, m.updatedAt AS markdownUpdatedAt,
+
+        dc.priceId, dc.paymentId, dc.addressClinic, dc.nameClinic,
+        dc.startDate, dc.endDate,
+        pri.value_vi AS priceVi, pri.value_en AS priceEn,
+        pay.value_vi AS paymentVi, pay.value_en AS paymentEn
+
       FROM Users AS u
       LEFT JOIN Allcodes AS p 
         ON u.positionId = p.keyMap AND p.type = 'POSITION'
@@ -60,6 +66,12 @@ const getDetailDoctorById = async (id) => {
         ON u.gender = g.keyMap AND g.type = 'GENDER'
       LEFT JOIN Markdown AS m 
         ON m.doctorId = u.id
+      LEFT JOIN Doctor_Clinic AS dc 
+        ON dc.doctorId = u.id
+      LEFT JOIN Allcodes AS pri
+        ON dc.priceId = pri.keyMap AND pri.type = 'PRICE'
+      LEFT JOIN Allcodes AS pay
+        ON dc.paymentId = pay.keyMap AND pay.type = 'PAYMENT'
       WHERE u.id = ? AND u.roleId = 'R2';
       `,
             [id]
@@ -100,59 +112,105 @@ const getAllDoctorHome = async () => {
 const saveDetailInfoDoctor = async (data) => {
     const status = {};
     try {
-        if (!data || !data.contentHTML || !data.contentMarkdown || !data.doctorId) {
+        if (
+            !data ||
+            !data.contentHTML ||
+            !data.contentMarkdown ||
+            !data.doctorId ||
+            !data.priceId ||
+            !data.paymentId ||
+            !data.nameClinic ||
+            !data.addressClinic
+        ) {
             status.errCode = 1;
-            status.errMessage = 'Missing required parameters';
+            status.errMessage = "Missing required parameters";
             return status;
         }
 
-        const { contentHTML, contentMarkdown, description, doctorId } = data;
-        console.log("data", data);
+        const {
+            contentHTML,
+            contentMarkdown,
+            doctorId,
+            priceId,
+            paymentId,
+            nameClinic,
+            addressClinic,
+            description
+        } = data;
 
-        // Kiểm tra xem doctorId đã có markdown chưa
-        const [check] = await connection.promise().query(
-            `SELECT id FROM Markdown WHERE doctorId = ?`,
+        console.log(">>> Save doctor detail:", data);
+
+        // ====== 1️⃣ Markdown ======
+        const [checkMarkdown] = await connection
+            .promise()
+            .query(`SELECT id FROM Markdown WHERE doctorId = ?`, [doctorId]);
+        console.log('checkMarkdown', checkMarkdown);
+
+        if (checkMarkdown.length > 0) {
+            await connection.promise().query(
+                `
+          UPDATE Markdown
+          SET contentHTML = ?, contentMarkdown = ?, description = ?
+          WHERE doctorId = ?
+        `,
+                [contentHTML, contentMarkdown, description || null, doctorId]
+            );
+        } else {
+            await connection.promise().query(
+                `
+          INSERT INTO Markdown (contentHTML, contentMarkdown, description, doctorId)
+          VALUES (?, ?, ?, ?)
+        `,
+                [contentHTML, contentMarkdown, description || null, doctorId]
+            );
+        }
+
+        // ====== 2️⃣ Doctor_Clinic ======
+        const [checkClinic] = await connection.promise().query(
+            `SELECT id FROM doctor_clinic WHERE doctorId = ?`,
             [doctorId]
         );
-
-        if (check.length > 0) {
-            // Nếu đã có → cập nhật
-            const [result] = await connection.promise().query(
+        if (checkClinic.length > 0) {
+            // Cập nhật nếu đã tồn tại
+            await connection.promise().query(
                 `
-                UPDATE Markdown 
-                SET contentHTML = ?, contentMarkdown = ?, description = ?
-                WHERE doctorId = ?
-                `,
-                [contentHTML, contentMarkdown, description || null, doctorId]
+          UPDATE doctor_clinic
+          SET priceId = ?, paymentId = ?, nameClinic = ?, addressClinic = ?
+          WHERE doctorId = ? 
+        `,
+                [
+                    priceId,
+                    paymentId,
+                    nameClinic,
+                    addressClinic,
+                    doctorId,
+                ]
             );
-
-            status.errCode = 0;
-            status.errMessage = 'Update markdown successfully';
-            status.data = result;
         } else {
-            // Nếu chưa có → thêm mới
-            const [result] = await connection.promise().query(
+            // Thêm mới nếu chưa có
+            await connection.promise().query(
                 `
-                INSERT INTO Markdown (contentHTML, contentMarkdown, description, doctorId)
-                VALUES (?, ?, ?, ?)
-                `,
-                [contentHTML, contentMarkdown, description || null, doctorId]
+          INSERT INTO doctor_clinic 
+          (doctorId, nameClinic, priceId, paymentId, addressClinic)
+          VALUES (?, ?, ?, ?, ?)
+        `,
+                [doctorId, nameClinic, priceId, paymentId, addressClinic]
             );
-
-            status.errCode = 0;
-            status.errMessage = 'Insert markdown successfully';
-            status.data = result;
         }
+
+        status.errCode = 0;
+        status.errMessage = "Save doctor detail successfully";
 
         return status;
     } catch (error) {
-        console.log('UpdateDetailInfoDoctor error:', error);
-        status.errCode = 1;
-        status.errMessage = error.message || 'Database error';
+        console.log("saveDetailInfoDoctor error:", error);
+        status.errCode = 2;
+        status.errMessage = error.message || "Database error";
         status.data = [];
         return status;
     }
-}
+};
+
 
 
 
