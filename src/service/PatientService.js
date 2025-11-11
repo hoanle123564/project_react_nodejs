@@ -1,12 +1,20 @@
 const connection = require("../config/data");
 const moment = require("moment");
 require("moment/locale/vi"); // bắt buộc để moment hiểu tiếng Việt
-
+const { v4: uuidv4 } = require('uuid');
+require('dotenv').config()
 const { sendSimpleEmail } = require("./emailService");
+
+
+let buildUrlEmail = (doctorId, token) => {
+    let result = `${process.env.URL_REACT}/verify-booking?token=${token}&doctorId=${doctorId}`;
+    return result;
+};
+
 const bookAppointment = async (data) => {
     const status = {};
     try {
-        // ===== 1️⃣ Kiểm tra tham số bắt buộc =====
+        // ===== Kiểm tra tham số bắt buộc =====
         if (
             !data ||
             !data.email ||
@@ -57,7 +65,7 @@ const bookAppointment = async (data) => {
                 );
 
             patientId = insertUser.insertId;
-            console.log("✅ Đã tạo mới bệnh nhân:", email);
+            console.log("✅ Đã tạo mới bệnh nhân:", email, patientId, insertUser);
         } else {
             patientId = rows[0].id;
             console.log("⚠️ Bệnh nhân đã tồn tại:", email);
@@ -79,26 +87,29 @@ const bookAppointment = async (data) => {
                 "You already booked this doctor for the same time slot today!";
             return status;
         }
+        const token = uuidv4();
 
         // ===== 6️⃣ Tạo lịch hẹn mới (có thêm reason) =====
         const [booking] = await connection.promise().query(
             `INSERT INTO booking 
-             (statusId, doctorId, patientId, date, timeType, reason, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-            ['S1', doctorId, patientId, formattedDate, timeType, reason || null]
+             (statusId, doctorId, patientId, date, timeType, reason, token, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?,?, NOW(), NOW())`,
+            ['S1', doctorId, patientId, formattedDate, timeType, reason || null, token]
         );
+
         const [doctorInfo] = await connection
             .promise()
             .query("SELECT firstName, lastName FROM users WHERE id = ?", [doctorId]);
         const doctorName = doctorInfo.length > 0 ? `${doctorInfo[0].firstName} ${doctorInfo[0].lastName}` : "Bác sĩ";
 
+        ;
         // ===== 7️⃣ Gửi email xác nhận =====
         await sendSimpleEmail({
             reciverEmail: email,
             patientName: firstName + " " + lastName,
             time: timeString,
             doctorName: doctorName,
-            redirectLink: 'https://www.youtube.com/watch?v=0GL--Adfqhc&list=PLncHg6Kn2JT6E38Z3kit9Hnif1xC_9VqI&index=97',
+            redirectLink: buildUrlEmail(doctorId, token),
         });
 
         console.log("✅ Đặt lịch khám thành công cho:", email);
@@ -116,6 +127,53 @@ const bookAppointment = async (data) => {
     }
 };
 
+const verifyBookAppointment = async (data) => {
+    const status = {};
+    try {
+        // ===== Kiểm tra tham số bắt buộc =====
+        if (!data || !data.token || !data.doctorId) {
+            status.errCode = 1;
+            status.errMessage = "Missing required parameters";
+            return status;
+        }
+        const { token, doctorId } = data;
+
+        // ===== 2️⃣ Tìm kiếm lịch hẹn =====
+        const [rows] = await connection
+            .promise()
+            .query(
+                `SELECT * 
+                 FROM booking 
+                 WHERE doctorId = ? AND token = ? AND statusId = 'S1'`,
+                [doctorId, token]
+            );
+        if (rows.length === 0) {
+            status.errCode = 2;
+            status.errMessage = "Appointment has been activated or does not exist!";
+            return status;
+        }
+        //  Cập nhật trạng thái đã xác nhận lịch hẹn
+        await connection
+            .promise()
+            .query(
+                `UPDATE booking 
+                 SET statusId = 'S2', updatedAt = NOW() 
+                 WHERE doctorId = ? AND token = ? AND statusId = 'S1'`,
+                [doctorId, token]
+            );
+        status.errCode = 0;
+        status.errMessage = "Appointment activated successfully!";
+        return status;
+    }
+    catch (error) {
+        console.log("❌ verifyBookAppointment error:", error);
+        status.errCode = 1;
+        status.errMessage = error.message || "Database error";
+        return status;
+    }
+};
+
 module.exports = {
     bookAppointment,
+    verifyBookAppointment
 };
