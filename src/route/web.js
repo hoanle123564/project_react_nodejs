@@ -24,7 +24,7 @@ const {
 } = require("../controller/doctorController");
 
 const { postBookAppointment, postVerifyBookAppointment } = require("../controller/patientController");
-
+const { postCreateSpecialty } = require("../controller/specialtyController");
 const router = express.Router();
 
 router.get("/crud", getCRUD);
@@ -50,4 +50,8 @@ router.get("/api/get-schedule-doctor", GetcheScheduleDoctor);
 router.post("/api/patient-book-appointment", postBookAppointment);
 router.post("/api/verify-book-appointment", postVerifyBookAppointment);
 
+// specialty routes
+router.post("/api/create-specialty", postCreateSpecialty);
+
+// clinic routes
 module.exports = router;
