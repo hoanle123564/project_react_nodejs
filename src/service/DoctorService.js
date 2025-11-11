@@ -1,5 +1,6 @@
 const connection = require("../config/data");
 const moment = require("moment");
+
 const getTopDoctorHome = async (limit) => {
     const status = {};
     try {
@@ -54,7 +55,7 @@ const getDetailDoctorById = async (id) => {
         m.contentHTML, m.contentMarkdown, m.description,
         m.createdAt AS markdownCreatedAt, m.updatedAt AS markdownUpdatedAt,
 
-        dc.priceId, dc.paymentId, dc.addressClinic, dc.nameClinic,
+        dc.priceId, dc.paymentId, dc.addressClinic, dc.nameClinic,dc.province,
         dc.startDate, dc.endDate,
         pri.value_vi AS priceVi, pri.value_en AS priceEn,
         pay.value_vi AS paymentVi, pay.value_en AS paymentEn
@@ -133,6 +134,7 @@ const saveDetailInfoDoctor = async (data) => {
             doctorId,
             priceId,
             paymentId,
+            province,
             nameClinic,
             addressClinic,
             description
@@ -175,7 +177,7 @@ const saveDetailInfoDoctor = async (data) => {
             await connection.promise().query(
                 `
           UPDATE doctor_clinic
-          SET priceId = ?, paymentId = ?, nameClinic = ?, addressClinic = ?
+          SET priceId = ?, paymentId = ?, nameClinic = ?, addressClinic = ?, province = ?
           WHERE doctorId = ? 
         `,
                 [
@@ -183,6 +185,7 @@ const saveDetailInfoDoctor = async (data) => {
                     paymentId,
                     nameClinic,
                     addressClinic,
+                    province,
                     doctorId,
                 ]
             );
@@ -191,10 +194,10 @@ const saveDetailInfoDoctor = async (data) => {
             await connection.promise().query(
                 `
           INSERT INTO doctor_clinic 
-          (doctorId, nameClinic, priceId, paymentId, addressClinic)
-          VALUES (?, ?, ?, ?, ?)
+          (doctorId, nameClinic, priceId, paymentId, addressClinic,province)
+          VALUES (?, ?, ?, ?, ?, ?)
         `,
-                [doctorId, nameClinic, priceId, paymentId, addressClinic]
+                [doctorId, nameClinic, priceId, paymentId, addressClinic, province]
             );
         }
 
