@@ -59,8 +59,8 @@ const bookAppointment = async (data) => {
                 .promise()
                 .query(
                     `INSERT INTO users 
-                    (email, firstName, lastName, address, gender, phoneNumber, roleId, positionId, createdAt, updatedAt) 
-                    VALUES (?, ?, ?, ?, ?, ?, 'R3', 'P0', NOW(), NOW())`,
+                    (email, firstName, lastName, address, gender, phoneNumber, roleId, createdAt, updatedAt) 
+                    VALUES (?, ?, ?, ?, ?, ?, 'R3', NOW(), NOW())`,
                     [email, firstName, lastName, address, gender, phoneNumber]
                 );
 
