@@ -4,34 +4,64 @@ const moment = require("moment");
 const getTopDoctorHome = async (limit) => {
     const status = {};
     try {
-        // Lấy ra thông tin bác sĩ từ 2 bảng: Users, Allcodes (position)
         const limitNum = Number(limit) || 5;
+
         const [rows] = await connection.promise().query(
-            `SELECT 
-        u.id, u.email, u.firstName, u.lastName, u.address,
-        u.gender, u.positionId, u.roleId, u.image, u.phoneNumber,
-        p.value_vi AS positionVi, p.value_en AS positionEn,
-        g.value_vi AS genderVi, g.value_en AS genderEn
-      FROM users AS u
-      LEFT JOIN Allcodes AS p ON u.positionId = p.keyMap AND p.type = 'POSITION'
-      LEFT JOIN Allcodes AS g ON u.gender = g.keyMap AND g.type = 'GENDER'
-      WHERE u.roleId = 'R2'
-      ORDER BY u.createdAt DESC
-      LIMIT ?`,
+            `
+             SELECT 
+                u.id,
+                u.email,
+                u.firstName,
+                u.lastName,
+                u.address,
+                u.gender,
+                u.positionId,
+                u.roleId,
+                u.image,
+                u.phoneNumber,
+
+                p.value_vi AS positionVi,
+                p.value_en AS positionEn,
+
+                g.value_vi AS genderVi,
+                g.value_en AS genderEn,
+
+                m.description
+
+            FROM users AS u
+
+            LEFT JOIN Allcodes AS p 
+                ON u.positionId = p.keyMap 
+                AND p.type = 'POSITION'
+
+            LEFT JOIN Allcodes AS g 
+                ON u.gender = g.keyMap 
+                AND g.type = 'GENDER'
+
+            LEFT JOIN markdown AS m 
+                ON m.doctorId = u.id
+
+            WHERE u.roleId = 'R2'     
+            ORDER BY u.createdAt DESC  
+            LIMIT ?;
+            `,
             [limitNum]
         );
+
         status.errCode = 0;
-        status.errMessage = 'OK';
+        status.errMessage = "OK";
         status.data = rows;
         return status;
+
     } catch (error) {
-        console.log('getTopDoctorHome error:', error);
+        console.log("getTopDoctorHome error:", error);
         status.errCode = 1;
         status.errMessage = error;
         status.data = [];
         return status;
     }
 };
+
 
 
 const getDetailDoctorById = async (id) => {
@@ -47,33 +77,44 @@ const getDetailDoctorById = async (id) => {
 
         const [rows] = await connection.promise().query(
             `
-   SELECT 
-        u.id, u.email, u.firstName, u.lastName, u.address, u.phoneNumber, u.image,
-        u.gender, u.positionId, u.roleId,
-        p.value_vi AS positionVi, p.value_en AS positionEn,
-        g.value_vi AS genderVi, g.value_en AS genderEn,
-        m.contentHTML, m.contentMarkdown, m.description,
-        m.createdAt AS markdownCreatedAt, m.updatedAt AS markdownUpdatedAt,
+  SELECT 
+    u.id, u.email, u.firstName, u.lastName, u.address, u.phoneNumber, u.image,
+    u.gender, u.positionId, u.roleId,
+    p.value_vi AS positionVi, p.value_en AS positionEn,
+    g.value_vi AS genderVi, g.value_en AS genderEn,
 
-        dc.priceId, dc.paymentId, dc.addressClinic, dc.nameClinic,dc.province,
-        dc.startDate, dc.endDate,
-        pri.value_vi AS priceVi, pri.value_en AS priceEn,
-        pay.value_vi AS paymentVi, pay.value_en AS paymentEn
+    m.contentHTML, m.contentMarkdown, m.description,
+    m.createdAt AS markdownCreatedAt, m.updatedAt AS markdownUpdatedAt,
 
-      FROM Users AS u
-      LEFT JOIN Allcodes AS p 
-        ON u.positionId = p.keyMap AND p.type = 'POSITION'
-      LEFT JOIN Allcodes AS g 
-        ON u.gender = g.keyMap AND g.type = 'GENDER'
-      LEFT JOIN Markdown AS m 
-        ON m.doctorId = u.id
-      LEFT JOIN Doctor_Clinic AS dc 
-        ON dc.doctorId = u.id
-      LEFT JOIN Allcodes AS pri
-        ON dc.priceId = pri.keyMap AND pri.type = 'PRICE'
-      LEFT JOIN Allcodes AS pay
-        ON dc.paymentId = pay.keyMap AND pay.type = 'PAYMENT'
-      WHERE u.id = ? AND u.roleId = 'R2';
+    dc.priceId, dc.paymentId, dc.addressClinic, dc.nameClinic, dc.province,
+    dc.startDate, dc.endDate,
+    pri.value_vi AS priceVi, pri.value_en AS priceEn,
+    pay.value_vi AS paymentVi, pay.value_en AS paymentEn,
+
+    s.id AS specialtyId,
+    s.name AS specialtyName
+
+
+FROM Users AS u
+LEFT JOIN Allcodes AS p 
+    ON u.positionId = p.keyMap AND p.type = 'POSITION'
+LEFT JOIN Allcodes AS g 
+    ON u.gender = g.keyMap AND g.type = 'GENDER'
+LEFT JOIN Markdown AS m 
+    ON m.doctorId = u.id
+LEFT JOIN Doctor_Clinic AS dc 
+    ON dc.doctorId = u.id
+LEFT JOIN Allcodes AS pri
+    ON dc.priceId = pri.keyMap AND pri.type = 'PRICE'
+LEFT JOIN Allcodes AS pay
+    ON dc.paymentId = pay.keyMap AND pay.type = 'PAYMENT'
+
+LEFT JOIN Specialty AS s 
+    ON dc.specialtyId = s.id
+
+WHERE u.id = ? 
+  AND u.roleId = 'R2';
+
       `,
             [id]
         );
@@ -121,7 +162,10 @@ const saveDetailInfoDoctor = async (data) => {
             !data.priceId ||
             !data.paymentId ||
             !data.nameClinic ||
-            !data.addressClinic
+            !data.addressClinic ||
+            !data.specialtyId
+            // ||
+            // !data.clinicId
         ) {
             status.errCode = 1;
             status.errMessage = "Missing required parameters";
@@ -134,6 +178,8 @@ const saveDetailInfoDoctor = async (data) => {
             doctorId,
             priceId,
             paymentId,
+            clinicId,
+            specialtyId,
             province,
             nameClinic,
             addressClinic,
@@ -177,7 +223,7 @@ const saveDetailInfoDoctor = async (data) => {
             await connection.promise().query(
                 `
           UPDATE doctor_clinic
-          SET priceId = ?, paymentId = ?, nameClinic = ?, addressClinic = ?, province = ?
+          SET priceId = ?, paymentId = ?, nameClinic = ?, addressClinic = ?, province = ?, specialtyId = ?
           WHERE doctorId = ? 
         `,
                 [
@@ -186,7 +232,8 @@ const saveDetailInfoDoctor = async (data) => {
                     nameClinic,
                     addressClinic,
                     province,
-                    doctorId,
+                    specialtyId,
+                    doctorId
                 ]
             );
         } else {
@@ -194,10 +241,10 @@ const saveDetailInfoDoctor = async (data) => {
             await connection.promise().query(
                 `
           INSERT INTO doctor_clinic 
-          (doctorId, nameClinic, priceId, paymentId, addressClinic,province)
-          VALUES (?, ?, ?, ?, ?, ?)
+          (doctorId, nameClinic, priceId, paymentId, addressClinic,province, specialtyId)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `,
-                [doctorId, nameClinic, priceId, paymentId, addressClinic, province]
+                [doctorId, nameClinic, priceId, paymentId, addressClinic, province, specialtyId]
             );
         }
 
@@ -258,7 +305,7 @@ const PostScheduleDoctor = async (data) => {
             .promise()
             .query(`SELECT doctorId, date, timeType FROM schedule`);
 
-        // ✅ Lọc trùng
+        // Lọc trùng
         values = values.filter((v) => {
             return !rows.some((row) => {
                 console.log('row.date', row.date);
@@ -275,7 +322,7 @@ const PostScheduleDoctor = async (data) => {
 
         console.log("Values after filter:", values);
 
-        // ✅ Chuyển tất cả date về YYYY-DD-MM một lần nữa để chắc chắn
+        //  Chuyển tất cả date về YYYY-DD-MM một lần nữa để chắc chắn
         values = values.map((v) => {
             v[2] = moment(v[2], ["DD/MM/YYYY", moment.ISO_8601]).format("YYYY-MM-DD");
             return v;
