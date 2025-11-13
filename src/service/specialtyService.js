@@ -2,7 +2,9 @@ const connection = require("../config/data");
 
 const createSpecialty = async (data) => {
     const status = {};
-    const { name, image, descriptionHTML } = data;
+    const { name, image, descriptionHTML, descriptionMarkdown } = data;
+    console.log('data specialty', data);
+
     try {
         if (!name || !image || !descriptionHTML) {
             status.errCode = 1;
@@ -10,9 +12,9 @@ const createSpecialty = async (data) => {
             return status;
         }
         await connection.promise().query(
-            `INSERT INTO specialty (name, image, description ) 
-         VALUES (?, ?, ?)`,
-            [name, image, descriptionHTML]
+            `INSERT INTO specialty (name, image, descriptionHTML, descriptionMarkdown ) 
+         VALUES (?, ?, ?, ? )`,
+            [name, image, descriptionHTML, descriptionMarkdown]
         );
         status.errCode = 0;
         status.errMessage = 'Create specialty successfully';
@@ -25,6 +27,71 @@ const createSpecialty = async (data) => {
     }
 }
 
+
+const getSpecialty = async () => {
+    try {
+        const [rows, fields] = await connection.promise().query(
+            `SELECT * FROM specialty `
+        );
+        return {
+            errCode: 0,
+            errMessage: 'OK',
+            data: rows
+        };
+    } catch (error) {
+        console.log(" getSpecialty error:", error);
+        return {
+            errCode: 1,
+            errMessage: 'Error from server',
+            data: []
+        };
+    }
+}
+const getSpecialtyDetailById = async (specialtyId, location) => {
+    try {
+        if (!specialtyId) {
+            return {
+                errCode: 1,
+                errMessage: 'Missing required parameters',
+                data: {}
+            };
+        }
+        const [rows] = await connection.promise().query(
+            `SELECT * FROM specialty WHERE id = ?`,
+            [specialtyId]
+        );
+        if (rows.length > 0) {
+            if (location === 'ALL') {
+                const [doctorRows] = await connection.promise().query(
+                    `SELECT doctorId, province FROM doctor_clinic WHERE specialtyId = ?`,
+                    [specialtyId]
+                );
+                rows[0].doctorSpecialty = doctorRows;
+            } else {
+                const [doctorRows] = await connection.promise().query(
+                    `SELECT doctorId, province FROM doctor_clinic WHERE specialtyId = ? AND province = ?`,
+                    [specialtyId, location]
+                );
+                rows[0].doctorSpecialty = doctorRows;
+            }
+        }
+        return {
+            errCode: 0,
+            errMessage: 'OK',
+            data: rows || {}
+        };
+    } catch (error) {
+        console.log(" getSpecialtyDetailById error:", error);
+        return {
+            errCode: 1,
+            errMessage: 'Error from server',
+            data: {}
+        };
+    }
+}
+
 module.exports = {
-    createSpecialty
+    createSpecialty,
+    getSpecialty,
+    getSpecialtyDetailById
 };
