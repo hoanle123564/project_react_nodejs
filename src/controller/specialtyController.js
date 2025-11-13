@@ -1,4 +1,4 @@
-const { createSpecialty } = require("../service/specialtyService");
+const { createSpecialty, getSpecialty, getSpecialtyDetailById } = require("../service/specialtyService");
 
 const postCreateSpecialty = async (req, res) => {
     try {
@@ -12,6 +12,36 @@ const postCreateSpecialty = async (req, res) => {
         });
     }
 }
+
+const getAllSpecialty = async (req, res) => {
+    try {
+        let respone = await getSpecialty();
+        return res.status(200).json(respone);
+    } catch (error) {
+        console.log("getAllSpecialty error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server",
+        });
+    }
+}
+
+const getDetailSpecialtyById = async (req, res) => {
+    try {
+        const specialtyId = req.query.id;
+        const location = req.query.location;
+        let response = await getSpecialtyDetailById(specialtyId, location);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("getDetailSpecialtyById error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server",
+        });
+    }
+};
 module.exports = {
-    postCreateSpecialty
+    postCreateSpecialty,
+    getAllSpecialty,
+    getDetailSpecialtyById
 };
