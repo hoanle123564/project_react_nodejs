@@ -25,6 +25,7 @@ const {
 
 const { postBookAppointment, postVerifyBookAppointment } = require("../controller/patientController");
 const { postCreateSpecialty, getAllSpecialty, getDetailSpecialtyById } = require("../controller/specialtyController");
+const { postCreateClinic, getAllClinic, getDetailClinicById } = require("../controller/clinicController");
 const router = express.Router();
 
 router.get("/crud", getCRUD);
@@ -56,4 +57,8 @@ router.get("/api/get-specialty", getAllSpecialty);
 router.get("/api/get-detail-specialty-by-id", getDetailSpecialtyById);
 
 // clinic routes
+router.post("/api/create-clinic", postCreateClinic);
+router.get("/api/get-clinic", getAllClinic);
+router.get("/api/get-detail-clinic-by-id", getDetailClinicById);
+
 module.exports = router;
