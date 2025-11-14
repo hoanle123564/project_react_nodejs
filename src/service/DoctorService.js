@@ -64,80 +64,125 @@ const getTopDoctorHome = async (limit) => {
 
 
 
-const getDetailDoctorById = async (id) => {
+const getDetailDoctorById = async (doctorId) => {
     const status = {};
 
     try {
-        if (!id) {
-            status.errCode = 1;
-            status.errMessage = 'Missing required parameter: doctorId';
-            status.data = [];
-            return status;
+        if (!doctorId) {
+            return {
+                errCode: 1,
+                errMessage: "Missing required parameter: doctorId",
+                data: {}
+            };
         }
 
-        const [rows] = await connection.promise().query(
-            `
-  SELECT 
-    u.id, u.email, u.firstName, u.lastName, u.address, u.phoneNumber, u.image,
-    u.gender, u.positionId, u.roleId,
-    p.value_vi AS positionVi, p.value_en AS positionEn,
-    g.value_vi AS genderVi, g.value_en AS genderEn,
+        // 1️⃣ LẤY THÔNG TIN NGƯỜI DÙNG
+        const [userRows] = await connection.promise().query(`
+            SELECT 
+                u.id, u.email, u.firstName, u.lastName, u.address, 
+                u.phoneNumber, u.image, u.gender, u.positionId, u.roleId,
+                p.value_vi AS positionVi, p.value_en AS positionEn,
+                g.value_vi AS genderVi, g.value_en AS genderEn
+            FROM Users AS u
+            LEFT JOIN Allcodes AS p 
+                ON u.positionId = p.keyMap AND p.type = 'POSITION'
+            LEFT JOIN Allcodes AS g 
+                ON u.gender = g.keyMap AND g.type = 'GENDER'
+            WHERE u.id = ? AND u.roleId = 'R2'
+        `, [doctorId]);
 
-    m.contentHTML, m.contentMarkdown, m.description,
-    m.createdAt AS markdownCreatedAt, m.updatedAt AS markdownUpdatedAt,
-
-    dc.priceId, dc.paymentId, dc.addressClinic, dc.nameClinic, dc.province,
-    dc.startDate, dc.endDate,
-    pri.value_vi AS priceVi, pri.value_en AS priceEn,
-    pay.value_vi AS paymentVi, pay.value_en AS paymentEn,
-
-    s.id AS specialtyId,
-    s.name AS specialtyName
-
-
-FROM Users AS u
-LEFT JOIN Allcodes AS p 
-    ON u.positionId = p.keyMap AND p.type = 'POSITION'
-LEFT JOIN Allcodes AS g 
-    ON u.gender = g.keyMap AND g.type = 'GENDER'
-LEFT JOIN Markdown AS m 
-    ON m.doctorId = u.id
-LEFT JOIN Doctor_Clinic AS dc 
-    ON dc.doctorId = u.id
-LEFT JOIN Allcodes AS pri
-    ON dc.priceId = pri.keyMap AND pri.type = 'PRICE'
-LEFT JOIN Allcodes AS pay
-    ON dc.paymentId = pay.keyMap AND pay.type = 'PAYMENT'
-
-LEFT JOIN Specialty AS s 
-    ON dc.specialtyId = s.id
-
-WHERE u.id = ? 
-  AND u.roleId = 'R2';
-
-      `,
-            [id]
-        );
-
-        if (rows.length > 0) {
-            status.errCode = 0;
-            status.errMessage = 'OK';
-            status.data = rows[0];
-        } else {
-            status.errCode = 2;
-            status.errMessage = 'Doctor not found';
-            status.data = {};
+        if (userRows.length === 0) {
+            return {
+                errCode: 2,
+                errMessage: "Doctor not found",
+                data: {}
+            };
         }
 
-        return status;
+        const user = userRows[0];
+
+        // 2️⃣ LẤY MARKDOWN
+        const [markdownRows] = await connection.promise().query(`
+            SELECT contentHTML, contentMarkdown, description,
+                   createdAt AS markdownCreatedAt,
+                   updatedAt AS markdownUpdatedAt
+            FROM Markdown
+            WHERE doctorId = ?
+        `, [doctorId]);
+
+        const markdown = markdownRows[0] || {};
+
+        // 3️⃣ LẤY DOCTOR_CLINIC
+        const [clinicRows] = await connection.promise().query(`
+            SELECT doctorId, priceId, paymentId, clinicId, province, specialtyId
+            FROM doctor_clinic
+            WHERE doctorId = ?
+        `, [doctorId]);
+
+        const dc = clinicRows[0] || {};
+
+        // 4️⃣ LẤY GIÁ & PAYMENT
+        const [priceRows] = await connection.promise().query(`
+            SELECT value_vi AS priceVi, value_en AS priceEn
+            FROM Allcodes
+            WHERE keyMap = ? AND type = 'PRICE'
+        `, [dc.priceId]);
+
+        const price = priceRows[0] || {};
+
+        const [paymentRows] = await connection.promise().query(`
+            SELECT value_vi AS paymentVi, value_en AS paymentEn
+            FROM Allcodes
+            WHERE keyMap = ? AND type = 'PAYMENT'
+        `, [dc.paymentId]);
+
+        const payment = paymentRows[0] || {};
+
+        // 5️⃣ LẤY SPECIALTY
+        const [specialtyRows] = await connection.promise().query(`
+            SELECT name AS specialtyName
+            FROM Specialty
+            WHERE id = ?
+        `, [dc.specialtyId]);
+
+        const specialty = specialtyRows[0] || {};
+
+        // 6️⃣ LẤY CLINIC
+        const [clinicDetailRows] = await connection.promise().query(`
+            SELECT name AS clinicName, address AS clinicAddress
+            FROM Clinic
+            WHERE id = ?
+        `, [dc.clinicId]);
+
+        const clinic = clinicDetailRows[0] || {};
+
+        // 7️⃣ GỘP TẤT CẢ LẠI
+        const data = {
+            ...user,
+            ...markdown,
+            ...dc,
+            ...price,
+            ...payment,
+            ...specialty,
+            ...clinic
+        };
+
+        return {
+            errCode: 0,
+            errMessage: "OK",
+            data
+        };
+
     } catch (error) {
-        console.log('getDetailDoctorById error:', error);
-        status.errCode = 1;
-        status.errMessage = error.message || 'Database error';
-        status.data = [];
-        return status;
+        console.log("getDetailDoctorById error:", error);
+        return {
+            errCode: 1,
+            errMessage: error.message,
+            data: {}
+        };
     }
 };
+
 
 const getAllDoctorHome = async () => {
     const status = {}
@@ -161,11 +206,9 @@ const saveDetailInfoDoctor = async (data) => {
             !data.doctorId ||
             !data.priceId ||
             !data.paymentId ||
-            !data.nameClinic ||
-            !data.addressClinic ||
-            !data.specialtyId
-            // ||
-            // !data.clinicId
+            !data.specialtyId ||
+            !data.clinicId
+
         ) {
             status.errCode = 1;
             status.errMessage = "Missing required parameters";
@@ -181,8 +224,6 @@ const saveDetailInfoDoctor = async (data) => {
             clinicId,
             specialtyId,
             province,
-            nameClinic,
-            addressClinic,
             description
         } = data;
 
@@ -222,17 +263,16 @@ const saveDetailInfoDoctor = async (data) => {
             // Cập nhật nếu đã tồn tại
             await connection.promise().query(
                 `
-          UPDATE doctor_clinic
-          SET priceId = ?, paymentId = ?, nameClinic = ?, addressClinic = ?, province = ?, specialtyId = ?
-          WHERE doctorId = ? 
+       UPDATE doctor_clinic
+          SET priceId = ?, paymentId = ?, province = ?, specialtyId = ?, clinicId = ?
+          WHERE doctorId = ?
         `,
                 [
                     priceId,
                     paymentId,
-                    nameClinic,
-                    addressClinic,
                     province,
                     specialtyId,
+                    clinicId,
                     doctorId
                 ]
             );
@@ -240,11 +280,11 @@ const saveDetailInfoDoctor = async (data) => {
             // Thêm mới nếu chưa có
             await connection.promise().query(
                 `
-          INSERT INTO doctor_clinic 
-          (doctorId, nameClinic, priceId, paymentId, addressClinic,province, specialtyId)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO doctor_clinic 
+          (doctorId, priceId, paymentId, province, specialtyId, clinicId)
+          VALUES (?, ?, ?, ?, ?, ?)
         `,
-                [doctorId, nameClinic, priceId, paymentId, addressClinic, province, specialtyId]
+                [doctorId, priceId, paymentId, province, specialtyId, clinicId]
             );
         }
 
@@ -372,12 +412,13 @@ const GetcheScheduleDoctorByDate = async (doctorId, date) => {
         const normalizedDate = normalizeDate(date);
         const [rows] = await connection.promise().query(
             `
-        SELECT s.id, s.doctorId, s.date, s.timeType, s.maxNumber,
-        a.value_vi , a.value_en 
-        FROM schedule AS s
-        LEFT JOIN allcodes AS a ON s.timeType = a.keyMap AND a.type = 'TIME'
-        WHERE s.doctorId = ? AND s.date = ?
-        ORDER BY s.timeType ASC
+       SELECT s.id, s.doctorId, s.date, s.timeType, s.maxNumber,
+           a.value_vi, a.value_en
+    FROM schedule AS s
+    LEFT JOIN allcodes AS a 
+        ON s.timeType = a.keyMap AND a.type = 'TIME'
+    WHERE s.doctorId = ? AND s.date = ?
+    ORDER BY CAST(SUBSTRING(s.timeType, 2) AS UNSIGNED) ASC
       `,
             [doctorId, normalizedDate]
         );
@@ -397,6 +438,7 @@ const GetcheScheduleDoctorByDate = async (doctorId, date) => {
     }
 
 }
+
 module.exports = {
     getTopDoctorHome,
     getDetailDoctorById,
