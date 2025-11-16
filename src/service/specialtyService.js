@@ -90,8 +90,59 @@ const getSpecialtyDetailById = async (specialtyId, location) => {
     }
 }
 
+const deleteSpecialty = async (specialtyId) => {
+    const status = {};
+    try {
+        if (!specialtyId) {
+            status.errCode = 1;
+            status.errMessage = 'Missing required parameters';
+            return status;
+        }
+        await connection.promise().query(
+            `DELETE FROM specialty WHERE id = ?`,
+            [specialtyId]
+        );
+        status.errCode = 0;
+        status.errMessage = 'Delete specialty successfully';
+        return status;
+    }
+    catch (error) {
+        console.log(" deleteSpecialty error", error);
+        status.errCode = 1;
+        status.errMessage = 'Error from server';
+        return status;
+    }
+};
+const editSpecialty = async (data) => {
+    const status = {};
+    try {
+        if (!data.id || !data.name || !data.descriptionHTML || !data.descriptionMarkdown) {
+            status.errCode = 1;
+            status.errMessage = 'Missing required parameters';
+            return status;
+        }
+        await connection.promise().query(
+            `UPDATE specialty 
+         SET name = ?, descriptionHTML = ?, descriptionMarkdown = ?
+            WHERE id = ?`,
+            [data.name, data.descriptionHTML, data.descriptionMarkdown, data.id]
+        );
+        status.errCode = 0;
+        status.errMessage = 'Update specialty successfully';
+        return status;
+    }
+    catch (error) {
+        console.log(" editSpecialty error", error);
+        status.errCode = 1;
+        status.errMessage = 'Error from server';
+        return status;
+    }
+};
+
 module.exports = {
     createSpecialty,
     getSpecialty,
-    getSpecialtyDetailById
+    getSpecialtyDetailById,
+    deleteSpecialty,
+    editSpecialty
 };
