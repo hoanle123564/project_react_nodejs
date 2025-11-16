@@ -1,77 +1,104 @@
-const { handleUserLogin, getAllUsers, createNewUser, deleteUser, updateUserData, getAllCodeService } = require('../service/userService')
+const {
+    handleUserLoginService,
+    getAllUsersService,
+    createNewUserService,
+    deleteUserService,
+    updateUserService,
+    getAllCodeService
+} = require('../service/userService');
 
-let handleLogin = async (req, res) => {
-    const email = req.body.email;
-    const password = req.body.password
 
-    if (!email || !password) {
-        return res.status(500).json({
-            errCode: 1,
-            message: 'Missing input parameter'
-        })
+// LOGIN
+const handleLogin = async (req, res) => {
+    try {
+        const response = await handleUserLoginService(req.body);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("handleLogin error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server"
+        });
     }
-    const user = await handleUserLogin(email, password)
-    return res.status(200).json({
-        errCode: user.errCode,
-        message: user.errMessage,
-        user
-    })
-}
+};
 
-let handleGetAllUser = async (req, res) => {
-    const id = req.query ? req.query.id : null;
-    if (!id) {
-        return res.status(200).json({
-            errCode: 1,
-            errMessage: 'Missing required parameters',
+
+// GET ALL USERS
+const handleGetAllUser = async (req, res) => {
+    try {
+        const response = await getAllUsersService(req.query.id);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("handleGetAllUser error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server",
             users: []
-        })
+        });
     }
-    const users = await getAllUsers(id);
-    return res.status(200).json({
-        errCode: 0,
-        errMessage: 'OK',
-        users
-    })
-}
+};
+
+
+// CREATE USER
 const handleCreateNewUserAPI = async (req, res) => {
-
-    const message = await createNewUser(req.body);
-    return res.status(200).json(message)
-}
-
-const handleEditUserAPI = async (req, res) => {
-    const data = req.body;
-    const message = await updateUserData(data);
-    return res.status(200).json(message)
-}
-
-const handleDeleteNewUserAPI = async (req, res) => {
-    const id = req.body.id;
-    if (!id) {
-        return res.status(200).json({
-            errCode: 1,
-            errMessage: 'Missing required parameters'
-        })
+    try {
+        const response = await createNewUserService(req.body);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("handleCreateNewUserAPI error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server"
+        });
     }
-    const message = await deleteUser(id);
-    return res.status(200).json(message)
-}
+};
 
+
+// EDIT USER
+const handleEditUserAPI = async (req, res) => {
+    try {
+        const response = await updateUserService(req.body);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("handleEditUserAPI error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server"
+        });
+    }
+};
+
+
+// DELETE USER
+const handleDeleteNewUserAPI = async (req, res) => {
+    try {
+        const response = await deleteUserService(req.body.id);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("handleDeleteNewUserAPI error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server"
+        });
+    }
+};
+
+
+// GET ALLCODE
 const getAllCode = async (req, res) => {
     try {
-        console.log('check req', req.query.type);
-
-        let data = await getAllCodeService(req.query.type);
-        return res.status(200).json(data)
+        const response = await getAllCodeService(req.query.type);
+        return res.status(200).json(response);
     } catch (error) {
-        console.log('Error get all code', error);
-        return res.status(200).json({
+        console.log("getAllCode error", error);
+        return res.status(400).json({
             errCode: -1,
-            errMessage: 'Error from Server'
-        })
+            errMessage: "Error from server"
+        });
     }
-}
+};
+
+
 module.exports = {
     handleLogin,
     handleGetAllUser,
@@ -79,4 +106,4 @@ module.exports = {
     handleEditUserAPI,
     handleDeleteNewUserAPI,
     getAllCode
-}
+};

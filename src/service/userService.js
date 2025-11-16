@@ -1,167 +1,271 @@
-const connection = require('../config/data')
+const connection = require("../config/data");
 const bcrypt = require("bcrypt");
-const { hashPassword } = require('../service/CRUDservice')
+const { createToken } = require("../jwtService");
 
 
-const handleUserLogin = async (email, pass) => {
+// LOGIN SERVICE
+const handleUserLoginService = async (data) => {
     try {
-        const isExistMail = await checkEmail(email);
+        const { email, password } = data;
 
-        const userData = {};
-        if (isExistMail) {
-            const [rows] = await connection.promise().query(`SELECT * FROM users where email = ?`, [email])
-            const user = rows[0];
-            const hashPassword = user.password;
-            const checkPass = await bcrypt.compare(pass, hashPassword)
-            if (checkPass) {
-                userData.errCode = 0;
-                userData.errMessage = 'Oke';
-                userData.user = user
-            } else {
-                userData.errCode = 2;
-                userData.errMessage = 'Wrong password';
-            }
-        } else {
-            userData.errCode = 1;
-            userData.errMessage = `Your email isn't exist. Try other email`
-        }
-        return userData
-
-    } catch (error) {
-        console.log(error);
-    }
-}
-const checkEmail = async (email) => {
-    try {
-        const [results, fields] = await connection.promise().query(`SELECT * FROM users Where email = ?`, [email])
-
-        if (results.length > 0) {
-            return true;
-        } else {
-            return false
-        }
-    } catch (error) {
-        console.log(error);
-    }
-}
-
-const getAllUsers = async (userId) => {
-    try {
-        if (userId === 'ALL') {
-            const [rows] = await connection.promise().query(`SELECT * FROM users `)
-            const users = rows.map(({ password, ...rest }) => rest);
-            console.log('rows >>', rows);
-            return users
-
-        }
-        if (userId && userId !== 'ALL') {
-            const [rows] = await connection.promise().query(`SELECT * FROM users where id = ?`, [userId])
-            const users = rows.map(({ password, ...rest }) => rest);
-            console.log('rows >>', rows);
-            return users
+        if (!email || !password) {
+            return {
+                errCode: 1,
+                errMessage: "Missing required parameters",
+                user: null,
+                token: null,
+                data: {}
+            };
         }
 
-    } catch (error) {
-        console.log(error);
-    }
-}
-const createNewUser = async (data) => {
-    const status = {}
-    console.log("Received data:", data);
-
-    const check = await checkEmail(data.email)
-    try {
-        if (check) {
-            status.errCode = 1
-            status.errMessage = `Email is exist. Try another`;
-            return status
-        }
-        const pass = data.password
-        data.password = await hashPassword(pass);
-        const { email, password, firstName, lastName, address, gender, roleId, phoneNumber, positionId, avatar } = data;
-        console.log('check data');
-
-        // const id = 3
-
-        const [results, fields] = await connection.promise().query(
-            `INSERT INTO users(email,password,firstName,lastName,address,gender,positionId,roleId,phoneNumber,image)
-   VALUES (?,?,?,?,?,?,?,?,?,?)`,
-            [email, password, firstName, lastName, address, gender, positionId, roleId, phoneNumber, avatar]
+        const [rows] = await connection.promise().query(
+            `SELECT * FROM users WHERE email = ?`,
+            [email]
         );
-        status.errCode = 0;
-        status.errMessage = `0K`;
-        return status
+
+        if (rows.length === 0) {
+            return {
+                errCode: 2,
+                errMessage: "Email does not exist",
+                user: null,
+                token: null,
+                data: {}
+            };
+        }
+
+        const user = rows[0];
+        const checkPass = await bcrypt.compare(password, user.password);
+        if (!checkPass) {
+            return {
+                errCode: 3,
+                errMessage: "Wrong password",
+                user: null,
+                token: null,
+                data: {}
+            };
+        }
+
+        const { password: pw, ...cleanUser } = user;
+
+        const token = createToken({
+            id: user.id,
+            email: user.email,
+            roleId: user.roleId
+        });
+
+        return {
+            errCode: 0,
+            errMessage: "Login success",
+
+            // format mới
+            user: cleanUser,
+            token: token,
+
+            // format cũ
+            data: {
+                user: cleanUser,
+                token: token
+            }
+        };
+
     } catch (error) {
-        console.log(error);
-        return error
+        console.log("handleUserLoginService error:", error);
+        return {
+            errCode: -1,
+            errMessage: "Server error",
+            user: null,
+            token: null,
+            data: {}
+        };
     }
-}
+};
 
-const deleteUser = async (id) => {
-    const status = {}
-    const [rows] = await connection.promise().query(`SELECT * FROM users where id = ? `, [id])
-    if (rows.length > 0) {
-        await connection.promise().query(`DELETE FROM users where id = ? `, [id])
-        status.errCode = 0;
-        status.errMessage = 'Delete user succeed'
-    } else {
-        status.errCode = 1;
-        status.errMessage = `User is't exist`
+
+
+// GET ALL USERS
+const getAllUsersService = async (id) => {
+    try {
+        if (!id) {
+            return { errCode: 1, errMessage: "Missing required parameter", data: [] };
+        }
+
+        if (id === "ALL") {
+            const [rows] = await connection.promise().query(`SELECT * FROM users`);
+            const users = rows.map(({ password, ...rest }) => rest);
+
+            return {
+                errCode: 0,
+                errMessage: "OK",
+                users: users
+            };
+        }
+
+        const [rows] = await connection.promise().query(
+            `SELECT * FROM users WHERE id = ?`,
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return {
+                errCode: 2,
+                errMessage: "User not found",
+                users: []
+            };
+        }
+
+        const users = rows.map(({ password, ...rest }) => rest);
+
+        return {
+            errCode: 0,
+            errMessage: "OK",
+            users: users
+        };
+
+    } catch (error) {
+        console.log("getAllUsersService error:", error);
+        return {
+            errCode: -1,
+            errMessage: "Error from server",
+            users: []
+        };
     }
-    return status
-}
+};
 
-const updateUserData = async (data) => {
-    const status = {};
-    const id = data ? data.id : null
-    const [rows] = await connection.promise().query(`SELECT * FROM users where id = ? `, [id])
 
-    if (rows.length > 0) {
-        const oldImage = rows[0].image;
-        const { email, password, firstName, lastName, address, gender, roleId, phoneNumber, positionId, avatar } = data;
-        //  Nếu không có avatar mới, giữ nguyên ảnh cũ
-        const imageToSave = avatar && avatar.trim() !== "" ? avatar : oldImage;
+
+// CREATE USER
+const createNewUserService = async (data) => {
+    try {
+        const { email, password, firstName, lastName, address, gender, roleId, phoneNumber, positionId, image } = data;
+
+        if (!email || !password || !firstName || !lastName) {
+            return { errCode: 1, errMessage: "Missing required parameters" };
+        }
+
+        const [check] = await connection.promise().query(
+            `SELECT id FROM users WHERE email = ?`,
+            [email]
+        );
+
+        if (check.length > 0) {
+            return { errCode: 2, errMessage: "Email already exists" };
+        }
+
+        const hashedPass = await bcrypt.hash(password, 10);
+
         await connection.promise().query(
-            `UPDATE users 
-       SET firstName = ?, lastName = ?, email = ?, address = ?, gender = ?, roleId = ?, 
-           phoneNumber = ?, positionId = ?, image = ? 
-       WHERE id = ?`,
+            `INSERT INTO users(email, password, firstName, lastName, address, gender, roleId, phoneNumber, positionId, image)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                firstName,
-                lastName,
-                email,
-                address,
-                gender,
-                roleId,
-                phoneNumber,
-                positionId,
-                imageToSave,
-                id,
+                email, hashedPass, firstName, lastName,
+                address || null, gender || null,
+                roleId || null, phoneNumber || null,
+                positionId || null, image || null
             ]
         );
-        status.errCode = 0;
-        status.errMessage = 'Update user succeed!';
-    } else {
-        status.errCode = 1;
-        status.errMessage = `User not found!`;
-    }
-    return status
-}
 
-const getAllCodeService = async (type) => {
-    let message = {};
-    try {
-        const [rows] = await connection.promise().query(
-            'select * from Allcodes where type = ? ORDER BY CAST(SUBSTRING(keyMap, 2) AS UNSIGNED)', [type]);
-        message.errCode = 0;
-        message.errMessage = 'Done';
-        message.data = rows;
-        return message
+        return { errCode: 0, errMessage: "User created successfully" };
 
     } catch (error) {
-        message.errCode = 1;
-        message.errMessage = 'Error';
-        return error
+        console.log("createNewUserService error:", error);
+        return { errCode: -1, errMessage: "Error from server" };
     }
-}
-module.exports = { handleUserLogin, getAllUsers, createNewUser, deleteUser, updateUserData, getAllCodeService }
+};
+
+
+// DELETE USER
+const deleteUserService = async (id) => {
+    try {
+        if (!id) {
+            return { errCode: 1, errMessage: "Missing required parameter" };
+        }
+
+        const [check] = await connection.promise().query(
+            `SELECT id FROM users WHERE id = ?`,
+            [id]
+        );
+
+        if (check.length === 0) {
+            return { errCode: 2, errMessage: "User does not exist" };
+        }
+
+        await connection.promise().query(
+            `DELETE FROM users WHERE id = ?`,
+            [id]
+        );
+
+        return { errCode: 0, errMessage: "User deleted successfully" };
+
+    } catch (error) {
+        console.log("deleteUserService error:", error);
+        return { errCode: -1, errMessage: "Error from server" };
+    }
+};
+
+
+// UPDATE USER
+const updateUserService = async (data) => {
+    try {
+        const { id, firstName, lastName, email, address, gender, roleId, phoneNumber, positionId, image } = data;
+
+        if (!id) {
+            return { errCode: 1, errMessage: "Missing required parameter" };
+        }
+
+        const [check] = await connection.promise().query(
+            `SELECT id FROM users WHERE id = ?`,
+            [id]
+        );
+
+        if (check.length === 0) {
+            return { errCode: 2, errMessage: "User not found" };
+        }
+
+        await connection.promise().query(
+            `UPDATE users SET firstName=?, lastName=?, email=?, address=?, gender=?, roleId=?, phoneNumber=?, positionId=?, image=? WHERE id=?`,
+            [
+                firstName || null, lastName || null, email || null,
+                address || null, gender || null, roleId || null,
+                phoneNumber || null, positionId || null, image || null,
+                id
+            ]
+        );
+
+        return { errCode: 0, errMessage: "Update successful" };
+
+    } catch (error) {
+        console.log("updateUserService error:", error);
+        return { errCode: -1, errMessage: "Error from server" };
+    }
+};
+
+
+// GET ALL CODE
+const getAllCodeService = async (type) => {
+    try {
+        if (!type) {
+            return { errCode: 1, errMessage: "Missing required parameter", data: [] };
+        }
+
+        const [rows] = await connection.promise().query(
+            `SELECT * FROM allcodes WHERE type = ?`,
+            [type]
+        );
+
+        return { errCode: 0, errMessage: "OK", data: rows };
+
+    } catch (error) {
+        console.log("getAllCodeService error:", error);
+        return { errCode: -1, errMessage: "Error from server", data: [] };
+    }
+};
+
+
+module.exports = {
+    handleUserLoginService,
+    getAllUsersService,
+    createNewUserService,
+    deleteUserService,
+    updateUserService,
+    getAllCodeService
+};
