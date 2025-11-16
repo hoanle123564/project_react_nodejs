@@ -4,7 +4,9 @@ const {
     getAllDoctorHome,
     saveDetailInfoDoctor,
     PostScheduleDoctor,
-    GetcheScheduleDoctorByDate
+    GetcheScheduleDoctorByDate,
+    GetListPatientForDoctor,
+    sendRemedy
 } = require("../service/DoctorService");
 const getTopDoctor = async (req, res) => {
     let limit = req.query.limit;
@@ -91,11 +93,40 @@ const GetcheScheduleDoctor = async (req, res) => {
     }
 }
 
+const getListPatientForDoctor = async (req, res) => {
+    try {
+        let doctorId = req.query.id;
+        let date = req.query.date;
+        let response = await GetListPatientForDoctor(doctorId, date);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("getListPatientForDoctor error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server",
+        });
+    }
+};
+const postSendRemedy = async (req, res) => {
+    try {
+        // Logic for sending remedy goes here
+        let response = await sendRemedy(req.body);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("postSendRemedy error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server",
+        });
+    }
+};
 module.exports = {
     getTopDoctor,
     getDetailDoctor,
     getAllDoctor,
     postInfoDoctor,
     CreateScheduleDoctor,
-    GetcheScheduleDoctor
+    GetcheScheduleDoctor,
+    getListPatientForDoctor,
+    postSendRemedy
 };
