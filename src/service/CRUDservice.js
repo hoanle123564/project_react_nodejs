@@ -2,7 +2,7 @@ const connection = require('../config/data')
 const bcrypt = require("bcrypt");
 const saltRounds = 10; // Số vòng lặp (độ phức tạp)
 
-const createNewUser = async(data) => {
+const createNewUser = async (data) => {
     const pass = data.password
     data.password = await hashPassword(pass);
     data.gender = data.gender === '1' ? true : false
@@ -19,13 +19,13 @@ const createNewUser = async(data) => {
 }
 
 // 🔹 Hash mật khẩu trước khi lưu
-const hashPassword = async(password) => {
+const hashPassword = async (password) => {
     const hash = await bcrypt.hash(password, saltRounds);
     console.log("Mật khẩu đã hash:", hash);
     return hash;
 }
 
-const getAllUser = async() => {
+const getAllUser = async () => {
     try {
         const [results, fields] = await connection.promise().query(`SELECT * FROM users`);
         console.log(results);

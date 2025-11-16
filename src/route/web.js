@@ -10,7 +10,7 @@ const {
   handleCreateNewUserAPI,
   handleEditUserAPI,
   handleDeleteNewUserAPI,
-  getAllCode,
+  getLookUp,
 } = require("../controller/userController");
 
 // doctor controller
@@ -56,7 +56,7 @@ router.get("/api/get-all-user", handleGetAllUser);
 router.post("/api/create-new-user", authMiddleware, handleCreateNewUserAPI);
 router.put("/api/edit-user", authMiddleware, handleEditUserAPI);
 router.delete("/api/delete-user", authMiddleware, handleDeleteNewUserAPI);
-router.get("/api/allcodes", getAllCode);
+router.get("/api/lookup", getLookUp);
 
 // doctocr routes
 router.get("/api/top-doctor", getTopDoctor);

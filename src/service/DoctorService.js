@@ -30,15 +30,15 @@ const getTopDoctorHome = async (limit) => {
 
             FROM users AS u
 
-            LEFT JOIN Allcodes AS p 
+            LEFT JOIN lookup AS p 
                 ON u.positionId = p.keyMap 
                 AND p.type = 'POSITION'
 
-            LEFT JOIN Allcodes AS g 
+            LEFT JOIN lookup AS g 
                 ON u.gender = g.keyMap 
                 AND g.type = 'GENDER'
 
-            LEFT JOIN detail_doctor AS m 
+            LEFT JOIN doctor AS m 
                 ON m.doctorId = u.id
 
             WHERE u.roleId = 'R2'     
@@ -82,9 +82,9 @@ const getDetailDoctorById = async (doctorId) => {
                 p.value_vi AS positionVi, p.value_en AS positionEn,
                 g.value_vi AS genderVi, g.value_en AS genderEn
             FROM Users AS u
-            LEFT JOIN Allcodes AS p 
+            LEFT JOIN lookup AS p 
                 ON u.positionId = p.keyMap AND p.type = 'POSITION'
-            LEFT JOIN Allcodes AS g 
+            LEFT JOIN lookup AS g 
                 ON u.gender = g.keyMap AND g.type = 'GENDER'
             WHERE u.id = ? AND u.roleId = 'R2'
         `,
@@ -101,24 +101,24 @@ const getDetailDoctorById = async (doctorId) => {
 
     const user = userRows[0];
 
-    // 2️⃣ LẤY detail_doctor
+    // 2️⃣ LẤY doctor
     const [markdownRows] = await connection.promise().query(
       `
             SELECT contentHTML, contentMarkdown, description
                  
-            FROM detail_doctor
+            FROM doctor
             WHERE doctorId = ?
         `,
       [doctorId]
     );
 
-    const detail_doctor = markdownRows[0] || {};
+    const doctor = markdownRows[0] || {};
 
-    // 3️⃣ LẤY DOCTOR_CLINIC
+    // 3️⃣ LẤY doctor_info
     const [clinicRows] = await connection.promise().query(
       `
             SELECT doctorId, priceId, paymentId, clinicId, province, specialtyId
-            FROM doctor_clinic
+            FROM doctor_info
             WHERE doctorId = ?
         `,
       [doctorId]
@@ -130,7 +130,7 @@ const getDetailDoctorById = async (doctorId) => {
     const [priceRows] = await connection.promise().query(
       `
             SELECT value_vi AS priceVi, value_en AS priceEn
-            FROM Allcodes
+            FROM lookup
             WHERE keyMap = ? AND type = 'PRICE'
         `,
       [dc.priceId]
@@ -141,7 +141,7 @@ const getDetailDoctorById = async (doctorId) => {
     const [paymentRows] = await connection.promise().query(
       `
             SELECT value_vi AS paymentVi, value_en AS paymentEn
-            FROM Allcodes
+            FROM lookup
             WHERE keyMap = ? AND type = 'PAYMENT'
         `,
       [dc.paymentId]
@@ -176,7 +176,7 @@ const getDetailDoctorById = async (doctorId) => {
     // 7️⃣ GỘP TẤT CẢ LẠI
     const data = {
       ...user,
-      ...detail_doctor,
+      ...doctor,
       ...dc,
       ...price,
       ...payment,
@@ -243,16 +243,16 @@ const saveDetailInfoDoctor = async (data) => {
 
     console.log(">>> Save doctor detail:", data);
 
-    // ====== 1️⃣ detail_doctor ======
+    // ====== 1️⃣ doctor ======
     const [checkMarkdown] = await connection
       .promise()
-      .query(`SELECT id FROM detail_doctor WHERE doctorId = ?`, [doctorId]);
+      .query(`SELECT id FROM doctor WHERE doctorId = ?`, [doctorId]);
     console.log("checkMarkdown", checkMarkdown);
 
     if (checkMarkdown.length > 0) {
       await connection.promise().query(
         `
-          UPDATE detail_doctor
+          UPDATE doctor
           SET contentHTML = ?, contentMarkdown = ?, description = ?
           WHERE doctorId = ?
         `,
@@ -261,22 +261,22 @@ const saveDetailInfoDoctor = async (data) => {
     } else {
       await connection.promise().query(
         `
-          INSERT INTO detail_doctor (contentHTML, contentMarkdown, description, doctorId)
+          INSERT INTO doctor (contentHTML, contentMarkdown, description, doctorId)
           VALUES (?, ?, ?, ?)
         `,
         [contentHTML, contentMarkdown, description || null, doctorId]
       );
     }
 
-    // ====== 2️⃣ Doctor_Clinic ======
+    // ====== 2️⃣ doctor_info ======
     const [checkClinic] = await connection
       .promise()
-      .query(`SELECT id FROM doctor_clinic WHERE doctorId = ?`, [doctorId]);
+      .query(`SELECT id FROM doctor_info WHERE doctorId = ?`, [doctorId]);
     if (checkClinic.length > 0) {
       // Cập nhật nếu đã tồn tại
       await connection.promise().query(
         `
-       UPDATE doctor_clinic
+       UPDATE doctor_info
           SET priceId = ?, paymentId = ?, province = ?, specialtyId = ?, clinicId = ?
           WHERE doctorId = ?
         `,
@@ -286,7 +286,7 @@ const saveDetailInfoDoctor = async (data) => {
       // Thêm mới nếu chưa có
       await connection.promise().query(
         `
-        INSERT INTO doctor_clinic 
+        INSERT INTO doctor_info 
           (doctorId, priceId, paymentId, province, specialtyId, clinicId)
           VALUES (?, ?, ?, ?, ?, ?)
         `,
@@ -413,7 +413,7 @@ const GetcheScheduleDoctorByDate = async (doctorId, date) => {
        SELECT s.id, s.doctorId, s.date, s.timeType, s.maxNumber,
            a.value_vi, a.value_en
     FROM schedule AS s
-    LEFT JOIN allcodes AS a 
+    LEFT JOIN lookup AS a 
         ON s.timeType = a.keyMap AND a.type = 'TIME'
     WHERE s.doctorId = ? AND s.date = ?
     ORDER BY CAST(SUBSTRING(s.timeType, 2) AS UNSIGNED) ASC
@@ -453,7 +453,7 @@ const GetListPatientForDoctor = async (doctorId, date) => {
                 a.value_vi AS timeTypeVi, a.value_en AS timeTypeEn
          FROM booking AS b
             LEFT JOIN users AS u ON b.patientId = u.id
-            LEFT JOIN allcodes AS a 
+            LEFT JOIN lookup AS a 
                 ON b.timeType = a.keyMap AND a.type = 'TIME'
          WHERE b.doctorId = ? AND b.date = ? AND b.statusId = 'S2'
         `,

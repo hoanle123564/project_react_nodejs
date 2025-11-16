@@ -63,13 +63,13 @@ const getSpecialtyDetailById = async (specialtyId, location) => {
         if (rows && rows.length > 0) {
             if (location === 'ALL') {
                 const [doctorRows] = await connection.promise().query(
-                    `SELECT doctorId, province FROM doctor_clinic WHERE specialtyId = ?`,
+                    `SELECT doctorId, province FROM doctor_info WHERE specialtyId = ?`,
                     [specialtyId]
                 );
                 rows[0].doctorSpecialty = doctorRows;
             } else {
                 const [doctorRows] = await connection.promise().query(
-                    `SELECT doctorId, province FROM doctor_clinic WHERE specialtyId = ? AND province = ?`,
+                    `SELECT doctorId, province FROM doctor_info WHERE specialtyId = ? AND province = ?`,
                     [specialtyId, location]
                 );
                 rows[0].doctorSpecialty = doctorRows;

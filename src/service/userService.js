@@ -207,6 +207,7 @@ const deleteUserService = async (id) => {
 const updateUserService = async (data) => {
     try {
         const { id, firstName, lastName, email, address, gender, roleId, phoneNumber, positionId, image } = data;
+        if (image) { console.log('image in service:'); }
 
         if (!id) {
             return { errCode: 1, errMessage: "Missing required parameter" };
@@ -241,21 +242,21 @@ const updateUserService = async (data) => {
 
 
 // GET ALL CODE
-const getAllCodeService = async (type) => {
+const getLookUpService = async (type) => {
     try {
         if (!type) {
             return { errCode: 1, errMessage: "Missing required parameter", data: [] };
         }
 
         const [rows] = await connection.promise().query(
-            `SELECT * FROM allcodes WHERE type = ?`,
+            `SELECT * FROM lookup WHERE type = ?`,
             [type]
         );
 
         return { errCode: 0, errMessage: "OK", data: rows };
 
     } catch (error) {
-        console.log("getAllCodeService error:", error);
+        console.log("getLookUpService error:", error);
         return { errCode: -1, errMessage: "Error from server", data: [] };
     }
 };
@@ -267,5 +268,5 @@ module.exports = {
     createNewUserService,
     deleteUserService,
     updateUserService,
-    getAllCodeService
+    getLookUpService
 };

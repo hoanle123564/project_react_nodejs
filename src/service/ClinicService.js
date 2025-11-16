@@ -64,14 +64,14 @@ const getClinicDetailById = async (clinicId, location) => {
         if (rows && rows.length > 0) {
             if (location === 'ALL') {
                 let [doctorClinic] = await connection.promise().query(
-                    `SELECT doctorId, province FROM doctor_clinic WHERE clinicId = ?`,
+                    `SELECT doctorId, province FROM doctor_info WHERE clinicId = ?`,
                     [clinicId]
                 );
                 rows[0].doctorClinic = doctorClinic;
 
             } else {
                 let [doctorClinic] = await connection.promise().query(
-                    `SELECT doctorId, province FROM doctor_clinic WHERE clinicId = ? AND province = ?`,
+                    `SELECT doctorId, province FROM doctor_info WHERE clinicId = ? AND province = ?`,
                     [clinicId, location]
                 );
                 rows[0].doctorClinic = doctorClinic;
