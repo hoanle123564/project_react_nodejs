@@ -94,8 +94,75 @@ const getClinicDetailById = async (clinicId, location) => {
     }
 }
 
+const deleteClinic = async (clinicId) => {
+    const status = {};
+    try {
+        if (!clinicId) {
+            status.errCode = 1;
+            status.errMessage = 'Missing required parameters';
+            return status;
+        }
+        const [row] = await connection.promise().query(
+            `SELECT * FROM clinic WHERE id = ?`,
+            [clinicId]
+        );
+        if (row.length === 0) {
+            status.errCode = 2;
+            status.errMessage = `The clinic with id ${clinicId} does not exist`;
+            return status;
+        }
+        await connection.promise().query(
+            `DELETE FROM clinic WHERE id = ?`,
+            [clinicId]
+        );
+        status.errCode = 0;
+        status.errMessage = 'Delete clinic successfully';
+        return status;
+    } catch (error) {
+        console.log(" deleteClinic error:", error);
+        status.errCode = 1;
+        status.errMessage = 'Error from server';
+        return status;
+    }
+};
+
+const editClinic = async (data) => {
+    const status = {};
+    try {
+        if (!data.id || !data.name || !data.address || !data.descriptionHTML || !data.descriptionMarkdown) {
+            status.errCode = 1;
+            status.errMessage = 'Missing required parameters';
+            return status;
+        }
+        const [row] = await connection.promise().query(
+            `SELECT * FROM clinic WHERE id = ?`,
+            [data.id]
+        );
+        if (row.length === 0) {
+            status.errCode = 2;
+            status.errMessage = `The clinic with id ${data.id} does not exist`;
+            return status;
+        }
+        await connection.promise().query(
+            `UPDATE clinic 
+             SET name = ?, address = ?, descriptionHTML = ?, descriptionMarkdown = ?
+                WHERE id = ?`,
+            [data.name, data.address, data.descriptionHTML, data.descriptionMarkdown, data.id]
+        );
+        status.errCode = 0;
+        status.errMessage = 'Update clinic successfully';
+        return status;
+    } catch (error) {
+        console.log(" editClinic error:", error);
+        status.errCode = 1;
+        status.errMessage = 'Error from server';
+        return status;
+    }
+};
 module.exports = {
     createClinic,
     getClinic,
-    getClinicDetailById
+    getClinicDetailById,
+    deleteClinic,
+    editClinic
 };
