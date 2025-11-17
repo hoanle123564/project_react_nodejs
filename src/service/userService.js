@@ -249,7 +249,12 @@ const getLookUpService = async (type) => {
         }
 
         const [rows] = await connection.promise().query(
-            `SELECT * FROM lookup WHERE type = ?`,
+            `
+            SELECT *
+            FROM lookup
+            WHERE type = ?
+            ORDER BY STR_TO_DATE(SUBSTRING_INDEX(value_vi, ' - ', 1), '%H:%i')
+            `,
             [type]
         );
 

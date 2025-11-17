@@ -4,7 +4,7 @@ const {
     createNewUserService,
     deleteUserService,
     updateUserService,
-    getAllCodeService
+    getLookUpService
 } = require('../service/userService');
 
 
@@ -84,13 +84,13 @@ const handleDeleteNewUserAPI = async (req, res) => {
 };
 
 
-// GET ALLCODE
-const getAllCode = async (req, res) => {
+// GET LookUp
+const getLookUp = async (req, res) => {
     try {
-        const response = await getAllCodeService(req.query.type);
+        const response = await getLookUpService(req.query.type);
         return res.status(200).json(response);
     } catch (error) {
-        console.log("getAllCode error", error);
+        console.log("getLookUp error", error);
         return res.status(400).json({
             errCode: -1,
             errMessage: "Error from server"
@@ -105,5 +105,5 @@ module.exports = {
     handleCreateNewUserAPI,
     handleEditUserAPI,
     handleDeleteNewUserAPI,
-    getAllCode
+    getLookUp
 };
