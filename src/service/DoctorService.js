@@ -551,6 +551,33 @@ const sendRemedy = async (data) => {
     return status;
   }
 };
+
+const deleteScheduleDoctor = async (scheduleid) => {
+  const status = {};
+  try {
+    if (!scheduleid) {
+      status.errCode = 1;
+      status.errMessage = "Missing required parameters";
+      return status;
+    }
+    await connection.promise().query(
+      `
+        DELETE FROM schedule WHERE id = ?
+      `,
+      [scheduleid]
+    );
+    status.errCode = 0;
+    status.errMessage = "Delete schedule successfully";
+    return status;
+  } catch (error) {
+    console.log("deleteScheduleDoctor error:", error);
+    status.errCode = 1;
+    status.errMessage = error.message || "Database error";
+    status.data = [];
+    return status;
+  }
+};
+
 module.exports = {
   getTopDoctorHome,
   getDetailDoctorById,
@@ -560,4 +587,5 @@ module.exports = {
   GetcheScheduleDoctorByDate,
   GetListPatientForDoctor,
   sendRemedy,
+  deleteScheduleDoctor
 };
