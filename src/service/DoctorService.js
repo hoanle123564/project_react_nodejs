@@ -1,6 +1,7 @@
 const connection = require("../config/data");
 const moment = require("moment");
 const { sendResultEmail } = require("./emailService");
+
 const getTopDoctorHome = async (limit) => {
   const status = {};
   try {
@@ -9,41 +10,52 @@ const getTopDoctorHome = async (limit) => {
     const [rows] = await connection.promise().query(
       `
              SELECT 
-                u.id,
-                u.email,
-                u.firstName,
-                u.lastName,
-                u.address,
-                u.gender,
-                u.positionId,
-                u.roleId,
-                u.image,
-                u.phoneNumber,
+            u.id,
+            u.email,
+            u.firstName,
+            u.lastName,
+            u.address,
+            u.gender,
+            u.positionId,
+            u.roleId,
+            u.image,
+            u.phoneNumber,
 
-                p.value_vi AS positionVi,
-                p.value_en AS positionEn,
+            -- Position
+            p.value_vi AS positionVi,
+            p.value_en AS positionEn,
 
-                g.value_vi AS genderVi,
-                g.value_en AS genderEn,
+            -- Gender
+            g.value_vi AS genderVi,
+            g.value_en AS genderEn,
 
-                m.description
+            m.description,
 
-            FROM users AS u
+            -- Specialty (Chuyên khoa)
+            s.id AS specialtyId,
+            s.name AS specialtyName,
+            s.image AS specialtyImage
 
-            LEFT JOIN lookup AS p 
-                ON u.positionId = p.keyMap 
-                AND p.type = 'POSITION'
+        FROM users AS u
 
-            LEFT JOIN lookup AS g 
-                ON u.gender = g.keyMap 
-                AND g.type = 'GENDER'
+        LEFT JOIN lookup AS p 
+            ON u.positionId = p.keyMap AND p.type = 'POSITION'
 
-            LEFT JOIN doctor AS m 
-                ON m.doctorId = u.id
+        LEFT JOIN lookup AS g 
+            ON u.gender = g.keyMap AND g.type = 'GENDER'
 
-            WHERE u.roleId = 'R2'     
-            ORDER BY u.createdAt DESC  
-            LIMIT ?;
+        LEFT JOIN doctor AS m 
+            ON m.doctorId = u.id
+
+        LEFT JOIN doctor_info AS di
+            ON di.doctorId = u.id
+
+        LEFT JOIN specialty AS s
+            ON s.id = di.specialtyId
+
+        WHERE u.roleId = 'R2'   -- bác sĩ
+        ORDER BY u.createdAt DESC  
+        LIMIT ?;
             `,
       [limitNum]
     );
@@ -578,6 +590,42 @@ const deleteScheduleDoctor = async (scheduleid) => {
   }
 };
 
+const GetListAppointment = async (doctorId) => {
+  const status = {};
+  try {
+    if (!doctorId) {
+      status.errCode = 1;
+      status.errMessage = "Missing required parameters";
+      status.data = [];
+      return status;
+    }
+    const [rows] = await connection.promise().query(
+      `
+         SELECT b.id, b.date, b.timeType, b.statusId, b.reason, b.patientId,
+                u.email, u.firstName, u.lastName, u.address, u.phoneNumber,
+                a.value_vi AS timeTypeVi, a.value_en AS timeTypeEn
+         FROM booking AS b
+            LEFT JOIN users AS u ON b.patientId = u.id
+            LEFT JOIN lookup AS a 
+                ON b.timeType = a.keyMap AND a.type = 'TIME'
+          WHERE b.doctorId = ?
+        `,
+      [doctorId]
+    );
+    status.errCode = 0;
+    status.errMessage = "OK";
+    status.data = rows;
+    return status;
+  }
+  catch (error) {
+    console.log("GetListAppointment error:", error);
+    status.errCode = 1;
+    status.errMessage = error.message || "Database error";
+    status.data = [];
+    return status;
+  }
+};
+
 module.exports = {
   getTopDoctorHome,
   getDetailDoctorById,
@@ -587,5 +635,6 @@ module.exports = {
   GetcheScheduleDoctorByDate,
   GetListPatientForDoctor,
   sendRemedy,
-  deleteScheduleDoctor
+  deleteScheduleDoctor,
+  GetListAppointment
 };

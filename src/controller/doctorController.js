@@ -7,7 +7,8 @@ const {
     GetcheScheduleDoctorByDate,
     GetListPatientForDoctor,
     sendRemedy,
-    deleteScheduleDoctor
+    deleteScheduleDoctor,
+    GetListAppointment
 } = require("../service/DoctorService");
 const getTopDoctor = async (req, res) => {
     let limit = req.query.limit;
@@ -136,6 +137,20 @@ const handleDeleteScheduleDoctor = async (req, res) => {
         });
     }
 };
+
+const getListAppointmentForDoctor = async (req, res) => {
+    try {
+        let doctorId = req.query.id;
+        let response = await GetListAppointment(doctorId);
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("getListAppointmentForDoctor error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server",
+        });
+    }
+};
 module.exports = {
     getTopDoctor,
     getDetailDoctor,
@@ -145,5 +160,6 @@ module.exports = {
     GetcheScheduleDoctor,
     getListPatientForDoctor,
     postSendRemedy,
-    handleDeleteScheduleDoctor
+    handleDeleteScheduleDoctor,
+    getListAppointmentForDoctor
 };
