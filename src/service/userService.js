@@ -231,8 +231,13 @@ const updateUserService = async (data) => {
                 id
             ]
         );
+        let [edit] = await connection.promise().query(
+            `SELECT * FROM users WHERE id = ?`,
+            [id]
+        );
+        edit = edit.map(({ password, ...rest }) => rest)[0];
 
-        return { errCode: 0, errMessage: "Update successful" };
+        return { errCode: 0, errMessage: "Update successful", data: edit || [] };
 
     } catch (error) {
         console.log("updateUserService error:", error);

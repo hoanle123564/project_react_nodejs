@@ -129,7 +129,7 @@ const deleteClinic = async (clinicId) => {
 const editClinic = async (data) => {
     const status = {};
     try {
-        if (!data.id || !data.name || !data.address || !data.descriptionHTML || !data.descriptionMarkdown) {
+        if (!data.id || !data.name || !data.address || !data.descriptionHTML || !data.descriptionMarkdown || !data.image) {
             status.errCode = 1;
             status.errMessage = 'Missing required parameters';
             return status;
@@ -145,9 +145,9 @@ const editClinic = async (data) => {
         }
         await connection.promise().query(
             `UPDATE clinic 
-             SET name = ?, address = ?, descriptionHTML = ?, descriptionMarkdown = ?
+             SET name = ?, address = ?, descriptionHTML = ?, descriptionMarkdown = ?, image = ?
                 WHERE id = ?`,
-            [data.name, data.address, data.descriptionHTML, data.descriptionMarkdown, data.id]
+            [data.name, data.address, data.descriptionHTML, data.descriptionMarkdown, data.image, data.id]
         );
         status.errCode = 0;
         status.errMessage = 'Update clinic successfully';
