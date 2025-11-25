@@ -136,7 +136,7 @@ const bookAppointment = async (data) => {
     };
 
   } catch (error) {
-    console.log("❌ bookAppointment error:", error);
+    console.log("bookAppointment error:", error);
     return {
       errCode: 1,
       errMessage: error.message,
@@ -180,7 +180,7 @@ const verifyBookAppointment = async (data) => {
     status.errMessage = "Appointment activated successfully!";
     return status;
   } catch (error) {
-    console.log("❌ verifyBookAppointment error:", error);
+    console.log("verifyBookAppointment error:", error);
     status.errCode = 1;
     status.errMessage = error.message || "Database error";
     return status;
@@ -199,7 +199,7 @@ const AllPatient = async () => {
     return status;
   }
   catch (error) {
-    console.log("❌ AllPatient error:", error);
+    console.log("AllPatient error:", error);
     status.errCode = 1;
     status.errMessage = error.message || "Database error";
     status.data = [];
@@ -257,7 +257,7 @@ const ListBookingForPatient = async (patientId) => {
     return status;
 
   } catch (error) {
-    console.log("❌ ListBookingForPatient error:", error);
+    console.log("ListBookingForPatient error:", error);
     status.errCode = 1;
     status.errMessage = error.message || "Database error";
     status.data = [];
@@ -301,7 +301,7 @@ const cancelBookAppointment = async (data) => {
     status.errMessage = "Appointment canceled successfully!";
     return status;
   } catch (error) {
-    console.log("❌ cancelBookAppointment error:", error);
+    console.log("cancelBookAppointment error:", error);
     status.errCode = 1;
     status.errMessage = error.message || "Database error";
     return status;
