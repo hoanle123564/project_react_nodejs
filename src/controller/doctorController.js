@@ -8,7 +8,8 @@ const {
     GetListPatientForDoctor,
     sendRemedy,
     deleteScheduleDoctor,
-    GetListAppointment
+    GetListAppointment,
+    ListBooking
 } = require("../service/DoctorService");
 const getTopDoctor = async (req, res) => {
     let limit = req.query.limit;
@@ -151,6 +152,20 @@ const getListAppointmentForDoctor = async (req, res) => {
         });
     }
 };
+
+const getListBooking = async (req, res) => {
+    try {
+        let response = await ListBooking();
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log("getListBooking error", error);
+        return res.status(400).json({
+            errCode: -1,
+            errMessage: "Error from server",
+        });
+    }
+};
+
 module.exports = {
     getTopDoctor,
     getDetailDoctor,
@@ -161,5 +176,6 @@ module.exports = {
     getListPatientForDoctor,
     postSendRemedy,
     handleDeleteScheduleDoctor,
-    getListAppointmentForDoctor
+    getListAppointmentForDoctor,
+    getListBooking
 };

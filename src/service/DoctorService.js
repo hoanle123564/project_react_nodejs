@@ -85,7 +85,7 @@ const getDetailDoctorById = async (doctorId) => {
       };
     }
 
-    // 1️⃣ LẤY THÔNG TIN NGƯỜI DÙNG
+    // LẤY THÔNG TIN NGƯỜI DÙNG
     const [userRows] = await connection.promise().query(
       `
             SELECT 
@@ -113,7 +113,7 @@ const getDetailDoctorById = async (doctorId) => {
 
     const user = userRows[0];
 
-    // 2️⃣ LẤY doctor
+    // LẤY doctor
     const [markdownRows] = await connection.promise().query(
       `
             SELECT contentHTML, contentMarkdown, description
@@ -126,7 +126,7 @@ const getDetailDoctorById = async (doctorId) => {
 
     const doctor = markdownRows[0] || {};
 
-    // 3️⃣ LẤY doctor_info
+    // LẤY doctor_info
     const [clinicRows] = await connection.promise().query(
       `
             SELECT doctorId, priceId, paymentId, clinicId, province, specialtyId
@@ -138,7 +138,7 @@ const getDetailDoctorById = async (doctorId) => {
 
     const dc = clinicRows[0] || {};
 
-    // 4️⃣ LẤY GIÁ & PAYMENT
+    // LẤY GIÁ & PAYMENT
     const [priceRows] = await connection.promise().query(
       `
             SELECT value_vi AS priceVi, value_en AS priceEn
@@ -161,7 +161,7 @@ const getDetailDoctorById = async (doctorId) => {
 
     const payment = paymentRows[0] || {};
 
-    // 5️⃣ LẤY SPECIALTY
+    // LẤY SPECIALTY
     const [specialtyRows] = await connection.promise().query(
       `
             SELECT name AS specialtyName
@@ -173,7 +173,7 @@ const getDetailDoctorById = async (doctorId) => {
 
     const specialty = specialtyRows[0] || {};
 
-    // 6️⃣ LẤY CLINIC
+    // LẤY CLINIC
     const [clinicDetailRows] = await connection.promise().query(
       `
             SELECT name AS clinicName, address AS clinicAddress
@@ -185,7 +185,7 @@ const getDetailDoctorById = async (doctorId) => {
 
     const clinic = clinicDetailRows[0] || {};
 
-    // 7️⃣ GỘP TẤT CẢ LẠI
+    // GỘP TẤT CẢ LẠI
     const data = {
       ...user,
       ...doctor,
@@ -234,7 +234,9 @@ const saveDetailInfoDoctor = async (data) => {
       !data.priceId ||
       !data.paymentId ||
       !data.specialtyId ||
-      !data.clinicId
+      !data.clinicId ||
+      !data.province ||
+      !data.description
     ) {
       status.errCode = 1;
       status.errMessage = "Missing required parameters";
@@ -255,7 +257,7 @@ const saveDetailInfoDoctor = async (data) => {
 
     console.log(">>> Save doctor detail:", data);
 
-    // ====== 1️⃣ doctor ======
+    // ====== doctor ======
     const [checkMarkdown] = await connection
       .promise()
       .query(`SELECT id FROM doctor WHERE doctorId = ?`, [doctorId]);
@@ -280,7 +282,7 @@ const saveDetailInfoDoctor = async (data) => {
       );
     }
 
-    // ====== 2️⃣ doctor_info ======
+    // ====== doctor_info ======
     const [checkClinic] = await connection
       .promise()
       .query(`SELECT id FROM doctor_info WHERE doctorId = ?`, [doctorId]);
@@ -626,6 +628,87 @@ const GetListAppointment = async (doctorId) => {
   }
 };
 
+
+const ListBooking = async (req, res) => {
+  try {
+    const [rows] = await connection.promise().query(
+      `
+      SELECT 
+          b.id,
+          b.date,
+          b.timeType,
+          b.statusId,
+          b.reason,
+          b.token,
+
+          -- Trạng thái khám bệnh
+          ls.value_en AS statusEn,
+          ls.value_vi AS statusVi,
+
+          -- Khung giờ khám
+          lt.value_en AS timeEn,
+          lt.value_vi AS timeVi,
+
+          -- Thông tin bác sĩ
+          doctor.firstName AS doctorFirstName,
+          doctor.lastName AS doctorLastName,
+          doctor.email AS doctorEmail,
+
+          -- Thông tin bệnh nhân
+          patient.firstName AS patientFirstName,
+          patient.lastName AS patientLastName,
+          patient.email AS patientEmail,
+          patient.phoneNumber AS patientPhoneNumber,
+          patient.address AS patientAddress,
+          patient.gender AS patientGender
+
+      FROM booking b
+
+      -- JOIN bảng users cho bác sĩ
+      JOIN users doctor 
+          ON b.doctorId = doctor.id
+
+      -- JOIN bảng users cho bệnh nhân
+      JOIN users patient
+          ON b.patientId = patient.id
+
+      -- Lookup STATUS
+      LEFT JOIN lookup ls 
+          ON b.statusId = ls.keyMap 
+         AND ls.type = 'STATUS'
+
+      -- Lookup TIME
+      LEFT JOIN lookup lt
+          ON b.timeType = lt.keyMap
+         AND lt.type = 'TIME'
+
+      ORDER BY b.date DESC, b.timeType ASC
+      `
+    );
+
+    if (!rows || rows.length === 0) {
+      return {
+        errCode: 1,
+        errMessage: "No bookings found",
+        data: [],
+      };
+    }
+
+    return {
+      errCode: 0,
+      errMessage: "OK",
+      data: rows,
+    };
+  } catch (error) {
+    console.log("ListBooking error:", error);
+    return {
+      errCode: 1,
+      errMessage: error.message || "Database error",
+      data: [],
+    };
+  }
+};
+
 module.exports = {
   getTopDoctorHome,
   getDetailDoctorById,
@@ -636,5 +719,6 @@ module.exports = {
   GetListPatientForDoctor,
   sendRemedy,
   deleteScheduleDoctor,
-  GetListAppointment
+  GetListAppointment,
+  ListBooking
 };

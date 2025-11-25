@@ -24,7 +24,8 @@ const {
   getListPatientForDoctor,
   postSendRemedy,
   handleDeleteScheduleDoctor,
-  getListAppointmentForDoctor
+  getListAppointmentForDoctor,
+  getListBooking
 } = require("../controller/doctorController");
 
 // patient controller
@@ -62,7 +63,7 @@ router.put("/api/edit-user", authMiddleware, handleEditUserAPI);
 router.delete("/api/delete-user", authMiddleware, handleDeleteNewUserAPI);
 router.get("/api/lookup", getLookUp);
 
-// doctocr routes
+// doctor routes
 router.get("/api/top-doctor", getTopDoctor);
 router.get("/api/all-doctor", getAllDoctor);
 router.get("/api/detail-doctor", getDetailDoctor);
@@ -73,6 +74,7 @@ router.get("/api/get-list-patient-for-doctor", authMiddleware, getListPatientFor
 router.post("/api/send-remedy", authMiddleware, postSendRemedy);
 router.delete("/api/delete-schedule-doctor", authMiddleware, handleDeleteScheduleDoctor);
 router.get("/api/get-list-booking-appointment-doctor", getListAppointmentForDoctor);
+router.get("/api/get-all-list-booking", getListBooking);
 
 // patient routes
 router.post("/api/patient-book-appointment", postBookAppointment);
