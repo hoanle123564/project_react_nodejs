@@ -102,19 +102,35 @@ const deleteClinic = async (clinicId) => {
             status.errMessage = 'Missing required parameters';
             return status;
         }
+
         const [row] = await connection.promise().query(
             `SELECT * FROM clinic WHERE id = ?`,
             [clinicId]
         );
+
         if (row.length === 0) {
             status.errCode = 2;
             status.errMessage = `The clinic with id ${clinicId} does not exist`;
             return status;
         }
+
+        // Kiểm tra xem có bác sĩ nào làm việc tại phòng khám này không
+        const [doctors] = await connection.promise().query(
+            `SELECT id FROM doctor_info WHERE clinicId = ? LIMIT 1`,
+            [clinicId]
+        );
+
+        if (doctors.length > 0) {
+            status.errCode = 3;
+            status.errMessage = 'Cannot delete clinic with existing doctors. Please remove all doctors from this clinic first.';
+            return status;
+        }
+
         await connection.promise().query(
             `DELETE FROM clinic WHERE id = ?`,
             [clinicId]
         );
+
         status.errCode = 0;
         status.errMessage = 'Delete clinic successfully';
         return status;
