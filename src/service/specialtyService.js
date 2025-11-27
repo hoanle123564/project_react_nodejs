@@ -98,10 +98,24 @@ const deleteSpecialty = async (specialtyId) => {
             status.errMessage = 'Missing required parameters';
             return status;
         }
+
+        // Kiểm tra xem có bác sĩ nào thuộc chuyên khoa này không
+        const [doctors] = await connection.promise().query(
+            `SELECT id FROM doctor_info WHERE specialtyId = ? LIMIT 1`,
+            [specialtyId]
+        );
+
+        if (doctors.length > 0) {
+            status.errCode = 2;
+            status.errMessage = 'Cannot delete specialty with existing doctors. Please remove all doctors from this specialty first.';
+            return status;
+        }
+
         await connection.promise().query(
             `DELETE FROM specialty WHERE id = ?`,
             [specialtyId]
         );
+
         status.errCode = 0;
         status.errMessage = 'Delete specialty successfully';
         return status;
@@ -113,6 +127,7 @@ const deleteSpecialty = async (specialtyId) => {
         return status;
     }
 };
+
 const editSpecialty = async (data) => {
     const status = {};
     try {
