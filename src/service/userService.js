@@ -143,17 +143,48 @@ const createNewUserService = async (data) => {
         }
 
         const [check] = await connection.promise().query(
-            `SELECT id FROM users WHERE email = ?`,
+            `SELECT id, email, password FROM users WHERE email = ?`,
             [email]
         );
 
+        // Nếu email đã tồn tại
         if (check.length > 0) {
+            const existingUser = check[0];
+
+            // Kiểm tra nếu là khách vãng lai (không có mật khẩu hoặc mật khẩu null)
+            if (!existingUser.password || existingUser.password === null || existingUser.password === '') {
+                // Cập nhật thông tin cho khách vãng lai
+                const hashedPass = await bcrypt.hash(password, 10);
+
+                await connection.promise().query(
+                    `UPDATE users 
+                     SET password = ?, firstName = ?, lastName = ?, address = ?, 
+                         gender = ?, roleId = ?, phoneNumber = ?, positionId = ?, image = ?
+                     WHERE id = ?`,
+                    [
+                        hashedPass, firstName, lastName,
+                        address || null, gender || null,
+                        roleId || null, phoneNumber || null,
+                        positionId || null, image || null,
+                        existingUser.id
+                    ]
+                );
+
+                return {
+                    errCode: 0,
+                    errMessage: "Guest account upgraded to full user successfully",
+                    userId: existingUser.id
+                };
+            }
+
+            // Nếu email đã có tài khoản đầy đủ
             return { errCode: 2, errMessage: "Email already exists" };
         }
 
+        // Tạo mới user nếu email chưa tồn tại
         const hashedPass = await bcrypt.hash(password, 10);
 
-        await connection.promise().query(
+        const [result] = await connection.promise().query(
             `INSERT INTO users(email, password, firstName, lastName, address, gender, roleId, phoneNumber, positionId, image)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
@@ -164,7 +195,11 @@ const createNewUserService = async (data) => {
             ]
         );
 
-        return { errCode: 0, errMessage: "User created successfully" };
+        return {
+            errCode: 0,
+            errMessage: "User created successfully",
+            userId: result.insertId
+        };
 
     } catch (error) {
         console.log("createNewUserService error:", error);
@@ -181,7 +216,7 @@ const deleteUserService = async (id) => {
         }
 
         const [check] = await connection.promise().query(
-            `SELECT id FROM users WHERE id = ?`,
+            `SELECT id, roleId FROM users WHERE id = ?`,
             [id]
         );
 
@@ -189,19 +224,94 @@ const deleteUserService = async (id) => {
             return { errCode: 2, errMessage: "User does not exist" };
         }
 
+        const user = check[0];
+
+        // Kiểm tra nếu là bác sĩ (R2)
+        if (user.roleId === 'R2') {
+            // Kiểm tra lịch làm việc
+            const [schedules] = await connection.promise().query(
+                `SELECT id FROM schedule WHERE doctorId = ? LIMIT 1`,
+                [id]
+            );
+
+            if (schedules.length > 0) {
+                return {
+                    errCode: 3,
+                    errMessage: "Cannot delete doctor with existing schedules"
+                };
+            }
+
+            // Kiểm tra lịch khám bệnh đang hoạt động (không bao gồm S3 - Đã khám và S4 - Đã hủy)
+            const [activeBookings] = await connection.promise().query(
+                `SELECT id FROM booking 
+                 WHERE doctorId = ? 
+                 AND statusId NOT IN ('S3', 'S4') 
+                 LIMIT 1`,
+                [id]
+            );
+
+            if (activeBookings.length > 0) {
+                return {
+                    errCode: 4,
+                    errMessage: "Cannot delete doctor with active bookings. Only completed (S3) or cancelled (S4) bookings are allowed."
+                };
+            }
+
+            // Xóa tất cả booking đã hoàn thành hoặc đã hủy của bác sĩ
+            await connection.promise().query(
+                `DELETE FROM booking 
+                 WHERE doctorId = ? 
+                 AND statusId IN ('S3', 'S4')`,
+                [id]
+            );
+
+            // Xóa thông tin bác sĩ (doctor_info)
+            await connection.promise().query(
+                `DELETE FROM doctor_info WHERE doctorId = ?`,
+                [id]
+            );
+        }
+
+        // Kiểm tra nếu là bệnh nhân (R3)
+        if (user.roleId === 'R3') {
+            // Kiểm tra lịch khám đang hoạt động
+            const [activeBookings] = await connection.promise().query(
+                `SELECT id FROM booking 
+                 WHERE patientId = ? 
+                 AND statusId NOT IN ('S3', 'S4') 
+                 LIMIT 1`,
+                [id]
+            );
+
+            if (activeBookings.length > 0) {
+                return {
+                    errCode: 5,
+                    errMessage: "Cannot delete patient with active bookings. Only completed (S3) or cancelled (S4) bookings are allowed."
+                };
+            }
+
+            // Xóa tất cả booking đã hoàn thành hoặc đã hủy của bệnh nhân
+            await connection.promise().query(
+                `DELETE FROM booking 
+                 WHERE patientId = ? 
+                 AND statusId IN ('S3', 'S4')`,
+                [id]
+            );
+        }
+
+        // Xóa user
         await connection.promise().query(
             `DELETE FROM users WHERE id = ?`,
             [id]
         );
 
-        return { errCode: 0, errMessage: "User deleted successfully" };
+        return { errCode: 0, errMessage: "User and related data deleted successfully" };
 
     } catch (error) {
         console.log("deleteUserService error:", error);
         return { errCode: -1, errMessage: "Error from server" };
     }
 };
-
 
 // UPDATE USER
 const updateUserService = async (data) => {
@@ -246,7 +356,7 @@ const updateUserService = async (data) => {
 };
 
 
-// GET ALL CODE
+// GET ALL LOOKUP
 const getLookUpService = async (type) => {
     try {
         if (!type) {
