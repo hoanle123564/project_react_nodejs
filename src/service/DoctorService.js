@@ -31,7 +31,7 @@ const getTopDoctorHome = async (limit) => {
 
             m.description,
 
-            -- Specialty (Chuyên khoa)
+            -- Specialty 
             s.id AS specialtyId,
             s.name AS specialtyName,
             s.image AS specialtyImage
@@ -117,7 +117,6 @@ const getDetailDoctorById = async (doctorId) => {
     const [markdownRows] = await connection.promise().query(
       `
             SELECT contentHTML, contentMarkdown, description
-                 
             FROM doctor
             WHERE doctorId = ?
         `,
@@ -574,12 +573,34 @@ const deleteScheduleDoctor = async (scheduleid) => {
       status.errMessage = "Missing required parameters";
       return status;
     }
+
+    // Kiểm tra xem lịch hẹn có bệnh nhân đặt không
+    const [bookings] = await connection.promise().query(
+      `
+        SELECT b.id, b.statusId
+        FROM booking b
+        INNER JOIN schedule s ON b.doctorId = s.doctorId 
+          AND b.date = s.date 
+          AND b.timeType = s.timeType
+        WHERE s.id = ? AND b.statusId IN ('S1', 'S2')
+      `,
+      [scheduleid]
+    );
+
+    if (bookings.length > 0) {
+      status.errCode = 2;
+      status.errMessage = "Cannot delete schedule with existing patient bookings";
+      return status;
+    }
+
+    // Nếu không có bệnh nhân đặt, thực hiện xóa
     await connection.promise().query(
       `
         DELETE FROM schedule WHERE id = ?
       `,
       [scheduleid]
     );
+
     status.errCode = 0;
     status.errMessage = "Delete schedule successfully";
     return status;
