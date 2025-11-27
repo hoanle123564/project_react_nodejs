@@ -74,8 +74,7 @@ const bookAppointment = async (data) => {
       }
     }
 
-    // CHECK TRÙNG LỊCH — GIỮ NGUYÊN ĐIỀU KIỆN CŨ
-    // 4 giá trị phải trùng: doctorId + patientId + date + timeType
+    // CHECK TRÙNG LỊCH
     const [existing] = await connection.promise().query(
       `SELECT * FROM booking
        WHERE doctorId = ? 
@@ -120,7 +119,7 @@ const bookAppointment = async (data) => {
         ? `${doctorInfo[0].firstName} ${doctorInfo[0].lastName}`
         : "Bác sĩ";
 
-    // GỬI EMAIL XÁC NHẬN — GIỮ NGUYÊN CODE CŨ
+    // GỬI EMAIL XÁC NHẬN 
     await sendSimpleEmail({
       reciverEmail: email,
       patientName: firstName + " " + lastName,
